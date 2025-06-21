@@ -16,6 +16,10 @@ const checkNetworkConnectivity = async (): Promise<boolean> => {
         'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
       signal: controller.signal
+    }).catch((error) => {
+      // Explicitly catch fetch errors including "Failed to fetch"
+      console.warn('Network connectivity check failed:', error);
+      throw error;
     });
     
     clearTimeout(timeoutId);
