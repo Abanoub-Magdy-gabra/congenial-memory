@@ -3,16 +3,50 @@ import { supabase } from '../lib/supabase';
 import type { Tables, Inserts, Updates } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
+// Network connectivity check
+const checkNetworkConnectivity = async (): Promise<boolean> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    return response.ok;
+  } catch (error) {
+    console.warn('Network connectivity check failed:', error);
+    return false;
+  }
+};
+
 // Generic hook for CRUD operations
 export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
   const [data, setData] = useState<Tables[T][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
-  // Fetch all records
+  // Fetch all records with error handling
   const fetchData = async (query?: string) => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // Check network connectivity first
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        setIsOffline(true);
+        setError('لا يوجد اتصال بالإنترنت');
+        return;
+      }
+      
+      setIsOffline(false);
       let queryBuilder = supabase.from(tableName).select('*');
       
       if (query) {
@@ -24,16 +58,27 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
       if (error) throw error;
       setData(result || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      toast.error('خطأ في تحميل البيانات');
+      const message = err instanceof Error ? err.message : 'حدث خطأ في تحميل البيانات';
+      setError(message);
+      console.error(`Error fetching ${tableName}:`, err);
+      
+      // Don't show toast for network errors in WebContainer
+      if (!message.includes('Failed to fetch')) {
+        toast.error('خطأ في تحميل البيانات');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Insert new record
+  // Insert new record with error handling
   const insert = async (record: Inserts[T]) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { data: result, error } = await supabase
         .from(tableName)
         .insert(record)
@@ -48,14 +93,21 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'خطأ في إضافة السجل';
       setError(message);
-      toast.error(message);
+      if (!message.includes('Failed to fetch')) {
+        toast.error(message);
+      }
       throw err;
     }
   };
 
-  // Update record
+  // Update record with error handling
   const update = async (id: string, updates: Updates[T]) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { data: result, error } = await supabase
         .from(tableName)
         .update(updates)
@@ -73,14 +125,21 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'خطأ في تحديث السجل';
       setError(message);
-      toast.error(message);
+      if (!message.includes('Failed to fetch')) {
+        toast.error(message);
+      }
       throw err;
     }
   };
 
-  // Delete record
+  // Delete record with error handling
   const remove = async (id: string) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { error } = await supabase
         .from(tableName)
         .delete()
@@ -93,7 +152,9 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'خطأ في حذف السجل';
       setError(message);
-      toast.error(message);
+      if (!message.includes('Failed to fetch')) {
+        toast.error(message);
+      }
       throw err;
     }
   };
@@ -106,6 +167,7 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
     data,
     loading,
     error,
+    isOffline,
     fetchData,
     insert,
     update,
@@ -118,6 +180,13 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
 const checkAndAddSampleData = async () => {
   try {
     console.log('Checking for existing data...');
+    
+    // Check network connectivity first
+    const isConnected = await checkNetworkConnectivity();
+    if (!isConnected) {
+      console.warn('No network connectivity, skipping sample data check');
+      return;
+    }
     
     // Check if categories exist
     const { data: existingCategories, error: categoriesError } = await supabase
@@ -385,6 +454,7 @@ export function useMenuItems() {
   const [categories, setCategories] = useState<Tables['categories'][]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchMenuItems = async () => {
     try {
@@ -392,6 +462,17 @@ export function useMenuItems() {
       setError(null);
       
       console.log('Fetching menu items and categories...');
+      
+      // Check network connectivity first
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        setIsOffline(true);
+        setError('لا يوجد اتصال بالإنترنت');
+        setLoading(false);
+        return;
+      }
+      
+      setIsOffline(false);
       
       // First check and add sample data if needed
       await checkAndAddSampleData();
@@ -447,7 +528,9 @@ export function useMenuItems() {
       console.error('Error fetching menu data:', err);
       const message = err instanceof Error ? err.message : 'خطأ في تحميل قائمة الطعام';
       setError(message);
-      toast.error(message);
+      if (!message.includes('Failed to fetch')) {
+        toast.error(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -462,6 +545,7 @@ export function useMenuItems() {
     categories, 
     loading, 
     error,
+    isOffline,
     refetch: fetchMenuItems 
   };
 }
@@ -469,10 +553,19 @@ export function useMenuItems() {
 export function useCustomers() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchCustomers = async () => {
     try {
       setLoading(true);
+      
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        setIsOffline(true);
+        return;
+      }
+      
+      setIsOffline(false);
       const { data, error } = await supabase
         .from('customers')
         .select(`
@@ -484,7 +577,10 @@ export function useCustomers() {
       if (error) throw error;
       setCustomers(data || []);
     } catch (err) {
-      toast.error('خطأ في تحميل بيانات العملاء');
+      console.error('Error fetching customers:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحميل بيانات العملاء');
+      }
     } finally {
       setLoading(false);
     }
@@ -492,6 +588,11 @@ export function useCustomers() {
 
   const searchCustomer = async (phone: string) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { data, error } = await supabase
         .from('customers')
         .select(`
@@ -504,7 +605,9 @@ export function useCustomers() {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     } catch (err) {
-      toast.error('العميل غير موجود');
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('العميل غير موجود');
+      }
       return null;
     }
   };
@@ -513,16 +616,25 @@ export function useCustomers() {
     fetchCustomers();
   }, []);
 
-  return { customers, loading, searchCustomer, refetch: fetchCustomers };
+  return { customers, loading, isOffline, searchCustomer, refetch: fetchCustomers };
 }
 
 export function useOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        setIsOffline(true);
+        return;
+      }
+      
+      setIsOffline(false);
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -542,7 +654,10 @@ export function useOrders() {
       if (error) throw error;
       setOrders(data || []);
     } catch (err) {
-      toast.error('خطأ في تحميل الطلبات');
+      console.error('Error fetching orders:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحميل الطلبات');
+      }
     } finally {
       setLoading(false);
     }
@@ -550,6 +665,11 @@ export function useOrders() {
 
   const createOrder = async (orderData: any) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -612,13 +732,21 @@ export function useOrders() {
       await fetchOrders();
       return order;
     } catch (err) {
-      toast.error('خطأ في إنشاء الطلب');
+      console.error('Error creating order:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في إنشاء الطلب');
+      }
       throw err;
     }
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { error } = await supabase
         .from('orders')
         .update({ status })
@@ -632,32 +760,44 @@ export function useOrders() {
 
       toast.success('تم تحديث حالة الطلب');
     } catch (err) {
-      toast.error('خطأ في تحديث حالة الطلب');
+      console.error('Error updating order status:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحديث حالة الطلب');
+      }
     }
   };
 
   useEffect(() => {
     fetchOrders();
 
-    // Subscribe to real-time updates
-    const subscription = supabase
-      .channel('orders')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          fetchOrders();
-        }
-      )
-      .subscribe();
+    // Subscribe to real-time updates only if connected
+    let subscription: any;
+    
+    checkNetworkConnectivity().then(isConnected => {
+      if (isConnected) {
+        subscription = supabase
+          .channel('orders')
+          .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'orders' },
+            () => {
+              fetchOrders();
+            }
+          )
+          .subscribe();
+      }
+    });
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   return { 
     orders, 
     loading, 
+    isOffline,
     createOrder, 
     updateOrderStatus, 
     refetch: fetchOrders 
@@ -668,10 +808,19 @@ export function useInventory() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<Tables['suppliers'][]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchInventory = async () => {
     try {
       setLoading(true);
+      
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        setIsOffline(true);
+        return;
+      }
+      
+      setIsOffline(false);
       
       const { data: items, error: itemsError } = await supabase
         .from('inventory')
@@ -694,7 +843,10 @@ export function useInventory() {
       setInventory(items || []);
       setSuppliers(sups || []);
     } catch (err) {
-      toast.error('خطأ في تحميل المخزون');
+      console.error('Error fetching inventory:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحميل المخزون');
+      }
     } finally {
       setLoading(false);
     }
@@ -702,6 +854,11 @@ export function useInventory() {
 
   const updateStock = async (itemId: string, newStock: number) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { error } = await supabase
         .from('inventory')
         .update({ current_stock: newStock })
@@ -715,7 +872,10 @@ export function useInventory() {
 
       toast.success('تم تحديث المخزون');
     } catch (err) {
-      toast.error('خطأ في تحديث المخزون');
+      console.error('Error updating stock:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحديث المخزون');
+      }
     }
   };
 
@@ -727,6 +887,7 @@ export function useInventory() {
     inventory, 
     suppliers, 
     loading, 
+    isOffline,
     updateStock, 
     refetch: fetchInventory 
   };
@@ -735,10 +896,19 @@ export function useInventory() {
 export function useTables() {
   const [tables, setTables] = useState<Tables['tables'][]>([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchTables = async () => {
     try {
       setLoading(true);
+      
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        setIsOffline(true);
+        return;
+      }
+      
+      setIsOffline(false);
       const { data, error } = await supabase
         .from('tables')
         .select('*')
@@ -747,7 +917,10 @@ export function useTables() {
       if (error) throw error;
       setTables(data || []);
     } catch (err) {
-      toast.error('خطأ في تحميل الطاولات');
+      console.error('Error fetching tables:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحميل الطاولات');
+      }
     } finally {
       setLoading(false);
     }
@@ -755,6 +928,11 @@ export function useTables() {
 
   const updateTableStatus = async (tableId: string, status: string) => {
     try {
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
       const { error } = await supabase
         .from('tables')
         .update({ status })
@@ -768,32 +946,44 @@ export function useTables() {
 
       toast.success('تم تحديث حالة الطاولة');
     } catch (err) {
-      toast.error('خطأ في تحديث حالة الطاولة');
+      console.error('Error updating table status:', err);
+      if (!err.message?.includes('Failed to fetch')) {
+        toast.error('خطأ في تحديث حالة الطاولة');
+      }
     }
   };
 
   useEffect(() => {
     fetchTables();
 
-    // Subscribe to real-time updates
-    const subscription = supabase
-      .channel('tables')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'tables' },
-        () => {
-          fetchTables();
-        }
-      )
-      .subscribe();
+    // Subscribe to real-time updates only if connected
+    let subscription: any;
+    
+    checkNetworkConnectivity().then(isConnected => {
+      if (isConnected) {
+        subscription = supabase
+          .channel('tables')
+          .on('postgres_changes', 
+            { event: '*', schema: 'public', table: 'tables' },
+            () => {
+              fetchTables();
+            }
+          )
+          .subscribe();
+      }
+    });
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
   return { 
     tables, 
     loading, 
+    isOffline,
     updateTableStatus, 
     refetch: fetchTables 
   };
@@ -811,7 +1001,7 @@ export function useDeliveryZones() {
   return useSupabaseTable('delivery_zones');
 }
 
-// Dashboard analytics hook
+// Dashboard analytics hook with fallback data
 export function useDashboardStats() {
   const [stats, setStats] = useState({
     todaySales: 0,
@@ -822,9 +1012,30 @@ export function useDashboardStats() {
     availableTables: 0,
     loading: true
   });
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchStats = async () => {
     try {
+      setStats(prev => ({ ...prev, loading: true }));
+      
+      // Check network connectivity first
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        console.warn('No network connectivity, using fallback stats');
+        setIsOffline(true);
+        setStats({
+          todaySales: 0,
+          todayOrders: 0,
+          activeOrders: 0,
+          newCustomers: 0,
+          lowStockItems: 0,
+          availableTables: 0,
+          loading: false
+        });
+        return;
+      }
+      
+      setIsOffline(false);
       const today = new Date().toISOString().split('T')[0];
       
       // Get today's sales
@@ -876,62 +1087,86 @@ export function useDashboardStats() {
   useEffect(() => {
     fetchStats();
     
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30000);
+    // Refresh stats every 30 seconds only if connected
+    const interval = setInterval(() => {
+      checkNetworkConnectivity().then(isConnected => {
+        if (isConnected) {
+          fetchStats();
+        }
+      });
+    }, 30000);
+    
     return () => clearInterval(interval);
   }, []);
 
-  return { stats, refetch: fetchStats };
+  return { stats, isOffline, refetch: fetchStats };
 }
 
-// Real-time notifications hook
+// Real-time notifications hook with offline handling
 export function useNotifications() {
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    // Subscribe to new orders
-    const ordersSubscription = supabase
-      .channel('new-orders')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'orders' },
-        (payload) => {
-          setNotifications(prev => [{
-            id: Date.now(),
-            title: 'طلب جديد',
-            message: `طلب جديد رقم ${payload.new.order_number}`,
-            type: 'order',
-            time: 'الآن',
-            unread: true
-          }, ...prev.slice(0, 9)]);
-        }
-      )
-      .subscribe();
+    let ordersSubscription: any;
+    let inventorySubscription: any;
 
-    // Subscribe to low stock alerts
-    const inventorySubscription = supabase
-      .channel('inventory-alerts')
-      .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'inventory' },
-        (payload) => {
-          if (payload.new.status === 'low-stock' || payload.new.status === 'out-of-stock') {
-            setNotifications(prev => [{
-              id: Date.now(),
-              title: 'تنبيه مخزون',
-              message: `${payload.new.name} - ${payload.new.status === 'out-of-stock' ? 'نفد المخزون' : 'مخزون منخفض'}`,
-              type: 'warning',
-              time: 'الآن',
-              unread: true
-            }, ...prev.slice(0, 9)]);
-          }
-        }
-      )
-      .subscribe();
+    // Only subscribe if connected
+    checkNetworkConnectivity().then(isConnected => {
+      if (isConnected) {
+        setIsOffline(false);
+        
+        // Subscribe to new orders
+        ordersSubscription = supabase
+          .channel('new-orders')
+          .on('postgres_changes', 
+            { event: 'INSERT', schema: 'public', table: 'orders' },
+            (payload) => {
+              setNotifications(prev => [{
+                id: Date.now(),
+                title: 'طلب جديد',
+                message: `طلب جديد رقم ${payload.new.order_number}`,
+                type: 'order',
+                time: 'الآن',
+                unread: true
+              }, ...prev.slice(0, 9)]);
+            }
+          )
+          .subscribe();
+
+        // Subscribe to low stock alerts
+        inventorySubscription = supabase
+          .channel('inventory-alerts')
+          .on('postgres_changes', 
+            { event: 'UPDATE', schema: 'public', table: 'inventory' },
+            (payload) => {
+              if (payload.new.status === 'low-stock' || payload.new.status === 'out-of-stock') {
+                setNotifications(prev => [{
+                  id: Date.now(),
+                  title: 'تنبيه مخزون',
+                  message: `${payload.new.name} - ${payload.new.status === 'out-of-stock' ? 'نفد المخزون' : 'مخزون منخفض'}`,
+                  type: 'warning',
+                  time: 'الآن',
+                  unread: true
+                }, ...prev.slice(0, 9)]);
+              }
+            }
+          )
+          .subscribe();
+      } else {
+        setIsOffline(true);
+      }
+    });
 
     return () => {
-      ordersSubscription.unsubscribe();
-      inventorySubscription.unsubscribe();
+      if (ordersSubscription) {
+        ordersSubscription.unsubscribe();
+      }
+      if (inventorySubscription) {
+        inventorySubscription.unsubscribe();
+      }
     };
   }, []);
 
-  return { notifications, setNotifications };
+  return { notifications, isOffline, setNotifications };
 }
