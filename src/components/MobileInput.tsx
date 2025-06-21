@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LucideIcon, Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
+import { DivideIcon as LucideIcon, Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 
 interface MobileInputProps {
   label?: string;

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LucideIcon } from 'lucide-react';
+import { DivideIcon as LucideIcon } from 'lucide-react';
 
 interface MobileButtonProps {
   children: React.ReactNode;

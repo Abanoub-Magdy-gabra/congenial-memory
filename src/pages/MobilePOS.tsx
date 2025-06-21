@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Minus, Trash2, ShoppingCart, Check, X, Filter, Grid, List, Star, Clock, Fire, Heart, Calculator, CreditCard, Banknote, Smartphone, User, MapPin, Truck, Home, Package } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, Check, X, Filter, Grid, List, Star, Clock, Siren as Fire, Heart, Calculator, CreditCard, Banknote, Smartphone, User, MapPin, Truck, Home, Package } from 'lucide-react';
 import { useMenuItems, useCustomers, useOrders, useTables, useDeliveryZones } from '../hooks/useSupabase';
 import MobileButton from '../components/MobileButton';
 import MobileInput from '../components/MobileInput';
