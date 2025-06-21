@@ -149,5 +149,3 @@ export class IntegrationManager {
 
 // Global integration manager instance
 export const integrationManager = new IntegrationManager();
-
-export { BaseIntegration }
