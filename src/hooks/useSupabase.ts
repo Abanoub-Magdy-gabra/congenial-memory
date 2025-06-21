@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import type { Tables, Inserts, Updates } from '../lib/supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
+import { trackOrderCreated, trackOrderCompleted, trackInventoryUpdate, trackCustomerCreated } from '../lib/integrations/api';
 
 // Network connectivity check
 const checkNetworkConnectivity = async (): Promise<boolean> => {
@@ -94,6 +95,12 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
       
       setData(prev => [...prev, result]);
       toast.success('تم إضافة السجل بنجاح');
+
+      // Track integration events
+      if (tableName === 'customers') {
+        await trackCustomerCreated(result);
+      }
+      
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'خطأ في إضافة السجل';
@@ -111,6 +118,23 @@ export function useSupabaseTable<T extends keyof Tables>(tableName: T) {
       const isConnected = await checkNetworkConnectivity();
       if (!isConnected) {
         throw new Error('لا يوجد اتصال بالإنترنت');
+      }
+
+      // If updating inventory, track inventory changes
+      if (tableName === 'inventory') {
+        const { data: oldItem } = await supabase
+          .from(tableName)
+          .select('*')
+          .eq('id', id)
+          .single();
+          
+        if (oldItem && 'current_stock' in updates) {
+          await trackInventoryUpdate(
+            oldItem, 
+            updates.current_stock as number, 
+            oldItem.current_stock as number
+          );
+        }
       }
 
       const { data: result, error } = await supabase
@@ -507,7 +531,6 @@ export function useMenuItems() {
             name_en
           )
         `)
-        .eq('is_available', true)
         .order('sort_order');
 
       if (itemsError) {
@@ -733,6 +756,13 @@ export function useOrders() {
           .eq('id', orderData.table_id);
       }
 
+      // Track order creation with integrations
+      await trackOrderCreated({
+        ...order,
+        items: orderItems,
+        customers: orderData.customer_id ? { id: orderData.customer_id } : null
+      });
+
       toast.success(`تم إنشاء الطلب رقم ${order.order_number}`);
       await fetchOrders();
       return order;
@@ -752,23 +782,32 @@ export function useOrders() {
         throw new Error('لا يوجد اتصال بالإنترنت');
       }
 
-      const { error } = await supabase
+      const { data: order, error } = await supabase
         .from('orders')
         .update({ status })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setOrders(prev => prev.map(order => 
-        order.id === orderId ? { ...order, status } : order
+      setOrders(prev => prev.map(o => 
+        o.id === orderId ? { ...o, status } : o
       ));
 
+      // Track order completion if status is delivered
+      if (status === 'delivered') {
+        await trackOrderCompleted(order);
+      }
+
       toast.success('تم تحديث حالة الطلب');
+      return order;
     } catch (err) {
       console.error('Error updating order status:', err);
       if (!err.message?.includes('Failed to fetch')) {
         toast.error('خطأ في تحديث حالة الطلب');
       }
+      throw err;
     }
   };
 
@@ -868,23 +907,42 @@ export function useInventory() {
         throw new Error('لا يوجد اتصال بالإنترنت');
       }
 
-      const { error } = await supabase
+      // Get current item data
+      const { data: currentItem } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('id', itemId)
+        .single();
+
+      if (!currentItem) {
+        throw new Error('Item not found');
+      }
+
+      // Update stock
+      const { data: updatedItem, error } = await supabase
         .from('inventory')
         .update({ current_stock: newStock })
-        .eq('id', itemId);
+        .eq('id', itemId)
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Track inventory update with integrations
+      await trackInventoryUpdate(currentItem, newStock, currentItem.current_stock);
+
       setInventory(prev => prev.map(item => 
-        item.id === itemId ? { ...item, current_stock: newStock } : item
+        item.id === itemId ? updatedItem : item
       ));
 
       toast.success('تم تحديث المخزون');
+      return updatedItem;
     } catch (err) {
       console.error('Error updating stock:', err);
       if (!err.message?.includes('Failed to fetch')) {
         toast.error('خطأ في تحديث المخزون');
       }
+      throw err;
     }
   };
 
@@ -1190,4 +1248,39 @@ export function useNotifications() {
   }, []);
 
   return { notifications, isOffline, setNotifications };
+}
+
+// Hook for using integrations
+export function useIntegration(type: string) {
+  const [integration, setIntegration] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadIntegration = async () => {
+      try {
+        setLoading(true);
+        await integrationManager.loadConfigurations();
+        
+        const enabledIntegrations = integrationManager.getEnabledIntegrations(type);
+        if (enabledIntegrations.length > 0) {
+          setIntegration(enabledIntegrations[0]);
+        } else {
+          setIntegration(null);
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error(`Error loading ${type} integration:`, err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        setIntegration(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadIntegration();
+  }, [type]);
+
+  return { integration, loading, error };
 }

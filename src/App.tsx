@@ -15,9 +15,12 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import Staff from './pages/Staff';
 import DeliveryManagement from './pages/DeliveryManagement';
+import Integrations from './pages/Integrations';
+import { useIntegrations } from './components/IntegrationProvider';
 
 function App() {
   const [isMobile, setIsMobile] = useState(false);
+  const { isInitialized } = useIntegrations();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -54,6 +57,7 @@ function App() {
             <Route path="/staff" element={<Staff />} />
             <Route path="/delivery" element={<DeliveryManagement />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/integrations" element={<Integrations />} />
           </Routes>
         </LayoutComponent>
         <Toaster 
