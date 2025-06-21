@@ -54,7 +54,71 @@ import {
   Layers,
   Monitor,
   Smartphone,
-  Tablet
+  Tablet,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  X,
+  Plus,
+  Minus,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Mail,
+  Phone,
+  MapPin,
+  Navigation,
+  Compass,
+  Flag,
+  Tag,
+  Folder,
+  FileText,
+  Image,
+  Video,
+  Music,
+  Archive,
+  Share,
+  Link as LinkIcon,
+  ExternalLink,
+  Copy,
+  Scissors,
+  Clipboard,
+  Save,
+  Upload as UploadIcon,
+  Download as DownloadIcon,
+  Printer,
+  Scanner,
+  Wifi as WifiIcon,
+  Bluetooth,
+  Battery,
+  Power,
+  Cpu,
+  HardDrive,
+  Memory,
+  Network,
+  Server,
+  Cloud,
+  CloudOff,
+  Gauge,
+  Thermometer,
+  Zap as ZapIcon,
+  Lightning,
+  Flame,
+  Droplets,
+  Wind,
+  Snowflake,
+  Umbrella,
+  Sun as SunIcon,
+  Moon as MoonIcon,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  Rainbow,
+  Sunrise,
+  Sunset
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -74,6 +138,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const location = useLocation();
 
   // Update time every second
@@ -111,7 +176,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-blue-500 to-blue-600',
       description: 'نظرة عامة على الأداء',
-      isNew: false
+      isNew: false,
+      category: 'main'
     },
     { 
       name: 'نقاط البيع', 
@@ -120,7 +186,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-green-500 to-green-600',
       description: 'إنشاء طلبات جديدة',
-      isNew: false
+      isNew: false,
+      category: 'main'
     },
     { 
       name: 'الطلبات', 
@@ -129,7 +196,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: 5, 
       color: 'from-orange-500 to-orange-600',
       description: 'متابعة الطلبات النشطة',
-      isNew: false
+      isNew: false,
+      category: 'main'
     },
     { 
       name: 'قائمة الطعام', 
@@ -138,7 +206,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-purple-500 to-purple-600',
       description: 'إدارة الأصناف والأسعار',
-      isNew: false
+      isNew: false,
+      category: 'management'
     },
     { 
       name: 'المخزون', 
@@ -147,7 +216,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: 2, 
       color: 'from-red-500 to-red-600',
       description: 'متابعة المواد والمخزون',
-      isNew: false
+      isNew: false,
+      category: 'management'
     },
     { 
       name: 'الطاولات', 
@@ -156,7 +226,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-yellow-500 to-yellow-600',
       description: 'إدارة طاولات المطعم',
-      isNew: false
+      isNew: false,
+      category: 'management'
     },
     { 
       name: 'التوصيل', 
@@ -165,7 +236,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: 3, 
       color: 'from-indigo-500 to-indigo-600',
       description: 'متابعة طلبات التوصيل',
-      isNew: true
+      isNew: true,
+      category: 'operations'
     },
     { 
       name: 'العملاء', 
@@ -174,7 +246,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-pink-500 to-pink-600',
       description: 'قاعدة بيانات العملاء',
-      isNew: false
+      isNew: false,
+      category: 'operations'
     },
     { 
       name: 'الموظفين', 
@@ -183,7 +256,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-teal-500 to-teal-600',
       description: 'إدارة فريق العمل',
-      isNew: false
+      isNew: false,
+      category: 'operations'
     },
     { 
       name: 'التقارير', 
@@ -192,7 +266,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-cyan-500 to-cyan-600',
       description: 'تحليلات وإحصائيات',
-      isNew: false
+      isNew: false,
+      category: 'analytics'
     },
     { 
       name: 'الإعدادات', 
@@ -201,7 +276,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       badge: null, 
       color: 'from-gray-500 to-gray-600',
       description: 'إعدادات النظام',
-      isNew: false
+      isNew: false,
+      category: 'system'
     },
   ];
 
@@ -222,10 +298,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const quickActions = [
-    { name: 'طلب جديد', icon: ShoppingCart, href: '/pos', color: 'from-green-500 to-green-600' },
-    { name: 'تقرير سريع', icon: BarChart3, href: '/reports', color: 'from-blue-500 to-blue-600' },
-    { name: 'إضافة عميل', icon: Users, href: '/customers', color: 'from-purple-500 to-purple-600' },
-    { name: 'إدارة المخزون', icon: Package, href: '/inventory', color: 'from-orange-500 to-orange-600' },
+    { name: 'طلب جديد', icon: ShoppingCart, href: '/pos', color: 'from-green-500 to-green-600', count: '5 نشط' },
+    { name: 'إدارة الطاولات', icon: Coffee, href: '/tables', color: 'from-green-500 to-green-600', count: '12 متاح' },
+    { name: 'التقارير', icon: BarChart3, href: '/reports', color: 'from-purple-500 to-purple-600', count: 'جديد' },
+    { name: 'الإعدادات', icon: Settings, href: '/settings', color: 'from-gray-500 to-gray-600', count: '3 تحديث' }
   ];
 
   const notificationsList = [
@@ -247,18 +323,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
+  // Group navigation items by category
+  const groupedNavigation = navigation.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, typeof navigation>);
+
+  const categoryLabels = {
+    main: 'الرئيسية',
+    management: 'الإدارة',
+    operations: 'العمليات',
+    analytics: 'التحليلات',
+    system: 'النظام'
+  };
+
   return (
     <div className={`flex h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 ${darkMode ? 'dark' : ''}`}>
-      {/* Enhanced Sidebar */}
-      <div className={`${sidebarOpen ? 'w-80' : 'w-20'} glass-effect transition-all duration-500 ease-in-out border-r border-white/20 relative overflow-hidden flex flex-col`}>
+      {/* Enhanced Sidebar with Fixed Width */}
+      <div className={`${sidebarOpen ? 'w-80' : 'w-20'} fixed left-0 top-0 h-full glass-effect transition-all duration-500 ease-in-out border-r border-white/20 z-50 overflow-hidden flex flex-col shadow-2xl`}>
         {/* Animated background layers */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-600/5 via-transparent to-purple-600/5 opacity-50"></div>
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
         <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-500/10 to-transparent rounded-full translate-y-12 -translate-x-12"></div>
         
         <div className="relative z-10 flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
+          {/* Header Section */}
+          <div className="flex items-center justify-between p-6 border-b border-white/10 min-h-[88px]">
             <div className={`${sidebarOpen ? 'block' : 'hidden'} flex items-center space-x-3 space-x-reverse`}>
               <div className="relative group">
                 <div className="w-14 h-14 bg-gradient-to-r from-primary-600 via-primary-700 to-purple-600 rounded-3xl flex items-center justify-center shadow-xl hover:shadow-2xl transition-all duration-500 hover:scale-110 hover:rotate-3">
@@ -305,70 +398,95 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           )}
 
-          {/* Navigation */}
-          <nav className="flex-1 mt-6 px-4 space-y-2 overflow-y-auto custom-scrollbar">
-            {navigation.map((item, index) => {
-              const isActive = location.pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className={`group relative overflow-hidden rounded-2xl transition-all duration-300 block ${
-                    isActive
-                      ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 shadow-lg scale-105 border border-primary-200'
-                      : 'text-gray-600 hover:bg-white/50 hover:text-gray-900 hover:shadow-md hover:scale-102'
-                  }`}
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <div className="flex items-center px-4 py-4">
-                    <div className={`relative p-3 rounded-xl mr-3 transition-all duration-300 ${
-                      isActive 
-                        ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg' 
-                        : 'bg-gray-100 text-gray-500 group-hover:bg-white group-hover:shadow-md'
-                    }`}>
-                      <item.icon className="h-5 w-5 transition-all duration-300 group-hover:scale-110" />
-                      {isActive && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse rounded-xl"></div>
-                      )}
-                    </div>
-                    
-                    <div className={`${sidebarOpen ? 'block' : 'hidden'} transition-all duration-300 flex-1`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center">
-                            <span className="font-medium">{item.name}</span>
-                            {item.isNew && (
-                              <span className="mr-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
-                                جديد
-                              </span>
+          {/* Navigation Section */}
+          <nav className="flex-1 mt-6 px-4 space-y-6 overflow-y-auto custom-scrollbar">
+            {Object.entries(groupedNavigation).map(([category, items]) => (
+              <div key={category} className="space-y-2">
+                {/* Category Header */}
+                {sidebarOpen && (
+                  <div className="px-4 py-2">
+                    <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {categoryLabels[category as keyof typeof categoryLabels]}
+                    </h3>
+                    <div className="mt-1 h-px bg-gradient-to-r from-gray-300 via-gray-200 to-transparent"></div>
+                  </div>
+                )}
+                
+                {/* Navigation Items */}
+                {items.map((item, index) => {
+                  const isActive = location.pathname === item.href;
+                  return (
+                    <Link
+                      key={item.name}
+                      to={item.href}
+                      onMouseEnter={() => setHoveredItem(item.name)}
+                      onMouseLeave={() => setHoveredItem(null)}
+                      className={`group relative overflow-hidden rounded-2xl transition-all duration-300 block ${
+                        isActive
+                          ? 'bg-gradient-to-r from-primary-50 to-primary-100 text-primary-700 shadow-lg scale-105 border border-primary-200'
+                          : 'text-gray-600 hover:bg-white/50 hover:text-gray-900 hover:shadow-md hover:scale-102'
+                      }`}
+                      style={{ animationDelay: `${index * 0.05}s` }}
+                    >
+                      <div className="flex items-center px-4 py-4">
+                        <div className={`relative p-3 rounded-xl mr-3 transition-all duration-300 ${
+                          isActive 
+                            ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg' 
+                            : 'bg-gray-100 text-gray-500 group-hover:bg-white group-hover:shadow-md'
+                        }`}>
+                          <item.icon className="h-5 w-5 transition-all duration-300 group-hover:scale-110" />
+                          {isActive && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent transform -skew-x-12 animate-pulse rounded-xl"></div>
+                          )}
+                        </div>
+                        
+                        <div className={`${sidebarOpen ? 'block' : 'hidden'} transition-all duration-300 flex-1`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center">
+                                <span className="font-medium">{item.name}</span>
+                                {item.isNew && (
+                                  <span className="mr-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                                    جديد
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">{item.description}</p>
+                            </div>
+                            {item.badge && (
+                              <div className="flex items-center">
+                                <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center animate-bounce shadow-lg">
+                                  {item.badge}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{item.description}</p>
                         </div>
-                        {item.badge && (
-                          <div className="flex items-center">
-                            <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center animate-bounce shadow-lg">
-                              {item.badge}
-                            </span>
-                          </div>
-                        )}
                       </div>
-                    </div>
-                  </div>
-                  
-                  {/* Hover effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                  
-                  {/* Active indicator */}
-                  {isActive && (
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-primary-600 to-primary-700 rounded-l-full shadow-lg"></div>
-                  )}
-                </Link>
-              );
-            })}
+                      
+                      {/* Hover effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      
+                      {/* Active indicator */}
+                      {isActive && (
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-primary-600 to-primary-700 rounded-l-full shadow-lg"></div>
+                      )}
+
+                      {/* Tooltip for collapsed state */}
+                      {!sidebarOpen && hoveredItem === item.name && (
+                        <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap">
+                          {item.name}
+                          <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
 
-          {/* Quick Stats */}
+          {/* Quick Stats Section */}
           {sidebarOpen && (
             <div className="mt-6 mx-4 p-4 bg-gradient-to-r from-primary-50 via-white to-purple-50 rounded-3xl border border-primary-100 shadow-lg">
               <div className="flex items-center justify-between mb-4">
@@ -410,7 +528,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           )}
 
-          {/* System Status */}
+          {/* System Status Section */}
           {sidebarOpen && (
             <div className="mx-4 mt-4 p-3 bg-gradient-to-r from-gray-50 to-white rounded-2xl border border-gray-200">
               <div className="flex items-center justify-between">
@@ -439,7 +557,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           )}
 
-          {/* Footer */}
+          {/* Footer Section */}
           <div className="p-4 border-t border-white/10 mt-auto">
             <button className="w-full flex items-center px-4 py-3 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all duration-300 group relative overflow-hidden">
               <LogOut className="h-5 w-5 ml-3 group-hover:scale-110 transition-transform duration-300" />
@@ -452,8 +570,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Main content with proper margin */}
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-500 ${sidebarOpen ? 'ml-80' : 'ml-20'}`}>
         {/* Enhanced Header/Navbar */}
         <header className="glass-effect border-b border-white/10 shadow-lg relative overflow-hidden">
           {/* Animated background */}
@@ -467,7 +585,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               {/* Enhanced Search */}
               <div className="relative group">
                 <div className={`relative transition-all duration-300 ${searchFocused ? 'scale-105' : ''}`}>
-                  <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 transition-colors duration-300 group-hover:text-primary-500" />
+                  <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-6 w-6 transition-colors duration-300 group-hover:text-primary-500" />
                   <input
                     type="text"
                     placeholder="البحث السريع في النظام..."
