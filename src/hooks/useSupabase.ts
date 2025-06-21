@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Tables, Inserts, Updates } from '../lib/supabase';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import toast from 'react-hot-toast';
 
 // Network connectivity check
@@ -771,24 +772,28 @@ export function useOrders() {
     fetchOrders();
 
     // Subscribe to real-time updates only if connected
-    let subscription: any;
+    let subscription: RealtimeChannel | null = null;
     
     checkNetworkConnectivity().then(isConnected => {
       if (isConnected) {
-        subscription = supabase
-          .channel('orders')
-          .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'orders' },
-            () => {
-              fetchOrders();
-            }
-          )
-          .subscribe();
+        subscription = supabase.channel('orders');
+        
+        // Check if channel is already subscribed before subscribing
+        if (subscription.state !== 'joined' && subscription.state !== 'joining') {
+          subscription
+            .on('postgres_changes', 
+              { event: '*', schema: 'public', table: 'orders' },
+              () => {
+                fetchOrders();
+              }
+            )
+            .subscribe();
+        }
       }
     });
 
     return () => {
-      if (subscription) {
+      if (subscription && (subscription.state === 'joined' || subscription.state === 'joining')) {
         subscription.unsubscribe();
       }
     };
@@ -957,24 +962,28 @@ export function useTables() {
     fetchTables();
 
     // Subscribe to real-time updates only if connected
-    let subscription: any;
+    let subscription: RealtimeChannel | null = null;
     
     checkNetworkConnectivity().then(isConnected => {
       if (isConnected) {
-        subscription = supabase
-          .channel('tables')
-          .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'tables' },
-            () => {
-              fetchTables();
-            }
-          )
-          .subscribe();
+        subscription = supabase.channel('tables');
+        
+        // Check if channel is already subscribed before subscribing
+        if (subscription.state !== 'joined' && subscription.state !== 'joining') {
+          subscription
+            .on('postgres_changes', 
+              { event: '*', schema: 'public', table: 'tables' },
+              () => {
+                fetchTables();
+              }
+            )
+            .subscribe();
+        }
       }
     });
 
     return () => {
-      if (subscription) {
+      if (subscription && (subscription.state === 'joined' || subscription.state === 'joining')) {
         subscription.unsubscribe();
       }
     };
@@ -1108,8 +1117,8 @@ export function useNotifications() {
   const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    let ordersSubscription: any;
-    let inventorySubscription: any;
+    let ordersSubscription: RealtimeChannel | null = null;
+    let inventorySubscription: RealtimeChannel | null = null;
 
     // Only subscribe if connected
     checkNetworkConnectivity().then(isConnected => {
@@ -1117,52 +1126,60 @@ export function useNotifications() {
         setIsOffline(false);
         
         // Subscribe to new orders
-        ordersSubscription = supabase
-          .channel('new-orders')
-          .on('postgres_changes', 
-            { event: 'INSERT', schema: 'public', table: 'orders' },
-            (payload) => {
-              setNotifications(prev => [{
-                id: Date.now(),
-                title: 'طلب جديد',
-                message: `طلب جديد رقم ${payload.new.order_number}`,
-                type: 'order',
-                time: 'الآن',
-                unread: true
-              }, ...prev.slice(0, 9)]);
-            }
-          )
-          .subscribe();
-
-        // Subscribe to low stock alerts
-        inventorySubscription = supabase
-          .channel('inventory-alerts')
-          .on('postgres_changes', 
-            { event: 'UPDATE', schema: 'public', table: 'inventory' },
-            (payload) => {
-              if (payload.new.status === 'low-stock' || payload.new.status === 'out-of-stock') {
+        ordersSubscription = supabase.channel('new-orders');
+        
+        // Check if channel is already subscribed before subscribing
+        if (ordersSubscription.state !== 'joined' && ordersSubscription.state !== 'joining') {
+          ordersSubscription
+            .on('postgres_changes', 
+              { event: 'INSERT', schema: 'public', table: 'orders' },
+              (payload) => {
                 setNotifications(prev => [{
                   id: Date.now(),
-                  title: 'تنبيه مخزون',
-                  message: `${payload.new.name} - ${payload.new.status === 'out-of-stock' ? 'نفد المخزون' : 'مخزون منخفض'}`,
-                  type: 'warning',
+                  title: 'طلب جديد',
+                  message: `طلب جديد رقم ${payload.new.order_number}`,
+                  type: 'order',
                   time: 'الآن',
                   unread: true
                 }, ...prev.slice(0, 9)]);
               }
-            }
-          )
-          .subscribe();
+            )
+            .subscribe();
+        }
+
+        // Subscribe to low stock alerts
+        inventorySubscription = supabase.channel('inventory-alerts');
+        
+        // Check if channel is already subscribed before subscribing
+        if (inventorySubscription.state !== 'joined' && inventorySubscription.state !== 'joining') {
+          inventorySubscription
+            .on('postgres_changes', 
+              { event: 'UPDATE', schema: 'public', table: 'inventory' },
+              (payload) => {
+                if (payload.new.status === 'low-stock' || payload.new.status === 'out-of-stock') {
+                  setNotifications(prev => [{
+                    id: Date.now(),
+                    title: 'تنبيه مخزون',
+                    message: `${payload.new.name} - ${payload.new.status === 'out-of-stock' ? 'نفد المخزون' : 'مخزون منخفض'}`,
+                    type: 'warning',
+                    time: 'الآن',
+                    unread: true
+                  }, ...prev.slice(0, 9)]);
+                }
+              }
+            )
+            .subscribe();
+        }
       } else {
         setIsOffline(true);
       }
     });
 
     return () => {
-      if (ordersSubscription) {
+      if (ordersSubscription && (ordersSubscription.state === 'joined' || ordersSubscription.state === 'joining')) {
         ordersSubscription.unsubscribe();
       }
-      if (inventorySubscription) {
+      if (inventorySubscription && (inventorySubscription.state === 'joined' || inventorySubscription.state === 'joining')) {
         inventorySubscription.unsubscribe();
       }
     };
