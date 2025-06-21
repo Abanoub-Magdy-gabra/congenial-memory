@@ -810,3 +810,128 @@ export function useDrivers() {
 export function useDeliveryZones() {
   return useSupabaseTable('delivery_zones');
 }
+
+// Dashboard analytics hook
+export function useDashboardStats() {
+  const [stats, setStats] = useState({
+    todaySales: 0,
+    todayOrders: 0,
+    activeOrders: 0,
+    newCustomers: 0,
+    lowStockItems: 0,
+    availableTables: 0,
+    loading: true
+  });
+
+  const fetchStats = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get today's sales
+      const { data: todayOrders } = await supabase
+        .from('orders')
+        .select('total_amount')
+        .gte('created_at', today)
+        .eq('status', 'delivered');
+
+      // Get active orders
+      const { data: activeOrders } = await supabase
+        .from('orders')
+        .select('id')
+        .in('status', ['pending', 'preparing', 'ready', 'out-for-delivery']);
+
+      // Get today's new customers
+      const { data: newCustomers } = await supabase
+        .from('customers')
+        .select('id')
+        .gte('created_at', today);
+
+      // Get low stock items
+      const { data: lowStock } = await supabase
+        .from('inventory')
+        .select('id')
+        .eq('status', 'low-stock');
+
+      // Get available tables
+      const { data: availableTables } = await supabase
+        .from('tables')
+        .select('id')
+        .eq('status', 'available');
+
+      setStats({
+        todaySales: todayOrders?.reduce((sum, order) => sum + order.total_amount, 0) || 0,
+        todayOrders: todayOrders?.length || 0,
+        activeOrders: activeOrders?.length || 0,
+        newCustomers: newCustomers?.length || 0,
+        lowStockItems: lowStock?.length || 0,
+        availableTables: availableTables?.length || 0,
+        loading: false
+      });
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      setStats(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  useEffect(() => {
+    fetchStats();
+    
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return { stats, refetch: fetchStats };
+}
+
+// Real-time notifications hook
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Subscribe to new orders
+    const ordersSubscription = supabase
+      .channel('new-orders')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        (payload) => {
+          setNotifications(prev => [{
+            id: Date.now(),
+            title: 'طلب جديد',
+            message: `طلب جديد رقم ${payload.new.order_number}`,
+            type: 'order',
+            time: 'الآن',
+            unread: true
+          }, ...prev.slice(0, 9)]);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to low stock alerts
+    const inventorySubscription = supabase
+      .channel('inventory-alerts')
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'inventory' },
+        (payload) => {
+          if (payload.new.status === 'low-stock' || payload.new.status === 'out-of-stock') {
+            setNotifications(prev => [{
+              id: Date.now(),
+              title: 'تنبيه مخزون',
+              message: `${payload.new.name} - ${payload.new.status === 'out-of-stock' ? 'نفد المخزون' : 'مخزون منخفض'}`,
+              type: 'warning',
+              time: 'الآن',
+              unread: true
+            }, ...prev.slice(0, 9)]);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      ordersSubscription.unsubscribe();
+      inventorySubscription.unsubscribe();
+    };
+  }, []);
+
+  return { notifications, setNotifications };
+}

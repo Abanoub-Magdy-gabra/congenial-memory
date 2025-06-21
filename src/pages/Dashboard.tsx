@@ -22,13 +22,21 @@ import {
   Heart,
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  CheckCircle
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { useDashboardStats, useOrders, useInventory, useTables } from '../hooks/useSupabase';
 
 const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedPeriod, setSelectedPeriod] = useState('today');
+
+  // Supabase hooks
+  const { stats } = useDashboardStats();
+  const { orders } = useOrders();
+  const { inventory } = useInventory();
+  const { tables } = useTables();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -37,115 +45,163 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Sample data
-  const salesData = [
-    { name: 'السبت', sales: 4000, orders: 24, profit: 1200 },
-    { name: 'الأحد', sales: 3000, orders: 18, profit: 900 },
-    { name: 'الاثنين', sales: 2000, orders: 12, profit: 600 },
-    { name: 'الثلاثاء', sales: 2780, orders: 16, profit: 834 },
-    { name: 'الأربعاء', sales: 1890, orders: 11, profit: 567 },
-    { name: 'الخميس', sales: 2390, orders: 14, profit: 717 },
-    { name: 'الجمعة', sales: 3490, orders: 20, profit: 1047 },
-  ];
+  // Process real data for charts
+  const salesData = React.useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return {
+        name: date.toLocaleDateString('ar-EG', { weekday: 'short' }),
+        date: date.toISOString().split('T')[0],
+        sales: 0,
+        orders: 0,
+        profit: 0
+      };
+    });
 
-  const hourlyData = [
-    { hour: '9:00', sales: 120, customers: 8 },
-    { hour: '10:00', sales: 180, customers: 12 },
-    { hour: '11:00', sales: 250, customers: 15 },
-    { hour: '12:00', sales: 420, customers: 28 },
-    { hour: '13:00', sales: 380, customers: 25 },
-    { hour: '14:00', sales: 290, customers: 19 },
-    { hour: '15:00', sales: 220, customers: 14 },
-    { hour: '16:00', sales: 180, customers: 12 },
-    { hour: '17:00', sales: 240, customers: 16 },
-    { hour: '18:00', sales: 350, customers: 23 },
-    { hour: '19:00', sales: 480, customers: 32 },
-    { hour: '20:00', sales: 520, customers: 35 },
-    { hour: '21:00', sales: 380, customers: 25 },
-    { hour: '22:00', sales: 280, customers: 18 }
-  ];
+    orders.forEach(order => {
+      const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+      const dayData = last7Days.find(day => day.date === orderDate);
+      if (dayData && order.status === 'delivered') {
+        dayData.sales += order.total_amount;
+        dayData.orders += 1;
+        dayData.profit += order.total_amount * 0.3; // Assume 30% profit margin
+      }
+    });
 
-  const categoryData = [
-    { name: 'الوجبات الرئيسية', value: 45, color: '#0ea5e9', amount: 1580 },
-    { name: 'المشروبات', value: 25, color: '#22c55e', amount: 875 },
-    { name: 'الحلويات', value: 20, color: '#f59e0b', amount: 700 },
-    { name: 'المقبلات', value: 10, color: '#ef4444', amount: 350 }
-  ];
+    return last7Days;
+  }, [orders]);
 
-  const topItems = [
-    { name: 'شاورما دجاج', sales: 45, revenue: 675, growth: 12.5, trend: 'up' },
-    { name: 'برجر لحم', sales: 38, revenue: 950, growth: 8.2, trend: 'up' },
-    { name: 'بيتزا مارجريتا', sales: 32, revenue: 1120, growth: -2.1, trend: 'down' },
-    { name: 'عصير برتقال', sales: 52, revenue: 416, growth: 15.3, trend: 'up' },
-    { name: 'قهوة تركي', sales: 28, revenue: 196, growth: 5.7, trend: 'up' }
-  ];
+  const hourlyData = React.useMemo(() => {
+    const hours = Array.from({ length: 14 }, (_, i) => ({
+      hour: `${i + 9}:00`,
+      sales: 0,
+      customers: 0
+    }));
 
-  const lowStockItems = [
-    { name: 'دجاج مشوي', current: 5, minimum: 10, urgency: 'high' },
-    { name: 'جبن موتزاريلا', current: 2, minimum: 8, urgency: 'critical' },
-    { name: 'طماطم', current: 3, minimum: 15, urgency: 'high' },
-    { name: 'خس', current: 1, minimum: 5, urgency: 'critical' },
-  ];
+    const today = new Date().toISOString().split('T')[0];
+    orders.forEach(order => {
+      const orderDate = new Date(order.created_at).toISOString().split('T')[0];
+      if (orderDate === today && order.status === 'delivered') {
+        const hour = new Date(order.created_at).getHours();
+        if (hour >= 9 && hour <= 22) {
+          const hourData = hours[hour - 9];
+          hourData.sales += order.total_amount;
+          hourData.customers += 1;
+        }
+      }
+    });
 
-  const recentOrders = [
-    { id: '#1234', table: 'طاولة 5', items: 3, total: 245, status: 'جاري التحضير', time: '10:30 ص', priority: 'normal' },
-    { id: '#1235', table: 'طاولة 2', items: 2, total: 180, status: 'جاهز', time: '10:25 ص', priority: 'high' },
-    { id: '#1236', table: 'تيك أواي', items: 4, total: 320, status: 'مكتمل', time: '10:20 ص', priority: 'normal' },
-    { id: '#1237', table: 'طاولة 8', items: 1, total: 95, status: 'جديد', time: '10:35 ص', priority: 'urgent' },
-  ];
+    return hours;
+  }, [orders]);
 
-  const stats = [
+  const categoryData = React.useMemo(() => {
+    const categories = [
+      { name: 'الوجبات الرئيسية', value: 0, color: '#0ea5e9', amount: 0 },
+      { name: 'المشروبات', value: 0, color: '#22c55e', amount: 0 },
+      { name: 'الحلويات', value: 0, color: '#f59e0b', amount: 0 },
+      { name: 'المقبلات', value: 0, color: '#ef4444', amount: 0 }
+    ];
+
+    let totalAmount = 0;
+    orders.forEach(order => {
+      if (order.status === 'delivered' && order.order_items) {
+        order.order_items.forEach((item: any) => {
+          if (item.menu_items?.category?.name) {
+            const category = categories.find(cat => cat.name === item.menu_items.category.name);
+            if (category) {
+              category.amount += item.total_price;
+              totalAmount += item.total_price;
+            }
+          }
+        });
+      }
+    });
+
+    categories.forEach(category => {
+      category.value = totalAmount > 0 ? Math.round((category.amount / totalAmount) * 100) : 0;
+    });
+
+    return categories.filter(cat => cat.value > 0);
+  }, [orders]);
+
+  const lowStockItems = React.useMemo(() => {
+    return inventory.filter(item => 
+      item.status === 'low-stock' || item.status === 'out-of-stock'
+    ).slice(0, 4);
+  }, [inventory]);
+
+  const recentOrders = React.useMemo(() => {
+    return orders
+      .filter(order => order.status !== 'delivered' && order.status !== 'cancelled')
+      .slice(0, 4)
+      .map(order => ({
+        id: order.order_number,
+        table: order.order_type === 'dine-in' ? `طاولة ${order.tables?.number}` : 
+               order.order_type === 'delivery' ? 'ديليفري' : 'تيك أواي',
+        items: order.order_items?.length || 0,
+        total: order.total_amount,
+        status: order.status,
+        time: new Date(order.created_at).toLocaleTimeString('ar-EG', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        priority: order.order_type === 'delivery' ? 'high' : 'normal'
+      }));
+  }, [orders]);
+
+  const dashboardStats = [
     {
       name: 'إجمالي المبيعات اليوم',
-      value: '٣,٤٩٠ ج.م',
+      value: `${stats.todaySales.toLocaleString()} ج.م`,
       change: '+12.5%',
       changeType: 'increase',
       icon: DollarSign,
       color: 'from-green-500 to-green-600',
       target: '4000 ج.م',
-      progress: 87,
+      progress: Math.min((stats.todaySales / 4000) * 100, 100),
       description: 'مقارنة بالأمس'
     },
     {
       name: 'عدد الطلبات',
-      value: '٢٠',
+      value: stats.todayOrders.toString(),
       change: '+8.2%',
       changeType: 'increase',
       icon: ShoppingCart,
       color: 'from-blue-500 to-blue-600',
       target: '25',
-      progress: 80,
+      progress: Math.min((stats.todayOrders / 25) * 100, 100),
       description: 'طلب جديد'
     },
     {
       name: 'العملاء الجدد',
-      value: '٧',
+      value: stats.newCustomers.toString(),
       change: '-2.1%',
       changeType: 'decrease',
       icon: Users,
       color: 'from-purple-500 to-purple-600',
       target: '10',
-      progress: 70,
+      progress: Math.min((stats.newCustomers / 10) * 100, 100),
       description: 'عميل مسجل'
     },
     {
       name: 'متوسط قيمة الطلب',
-      value: '١٧٤.٥ ج.م',
+      value: `${stats.todayOrders > 0 ? Math.round(stats.todaySales / stats.todayOrders) : 0} ج.م`,
       change: '+5.4%',
       changeType: 'increase',
       icon: TrendingUp,
       color: 'from-orange-500 to-orange-600',
       target: '200 ج.م',
-      progress: 87,
+      progress: stats.todayOrders > 0 ? Math.min(((stats.todaySales / stats.todayOrders) / 200) * 100, 100) : 0,
       description: 'للطلب الواحد'
     },
   ];
 
   const quickActions = [
-    { name: 'طلب جديد', icon: ShoppingCart, color: 'from-blue-500 to-blue-600', href: '/pos', count: '5 نشط' },
-    { name: 'إدارة الطاولات', icon: Coffee, color: 'from-green-500 to-green-600', href: '/tables', count: '12 متاح' },
-    { name: 'التقارير', icon: BarChart3, color: 'from-purple-500 to-purple-600', href: '/reports', count: 'جديد' },
-    { name: 'الإعدادات', icon: Settings, color: 'from-gray-500 to-gray-600', href: '/settings', count: '3 تحديث' }
+    { name: 'طلب جديد', icon: ShoppingCart, color: 'from-green-500 to-green-600', href: '/pos', count: `${stats.activeOrders} نشط` },
+    { name: 'تقرير سريع', icon: BarChart3, color: 'from-blue-500 to-blue-600', href: '/reports', count: 'جديد' },
+    { name: 'إضافة عميل', icon: Users, color: 'from-purple-500 to-purple-600', href: '/customers', count: 'جديد' },
+    { name: 'إدارة المخزون', icon: Package, color: 'from-orange-500 to-orange-600', href: '/inventory', count: `${stats.lowStockItems} تنبيه` },
   ];
 
   return (
@@ -211,7 +267,7 @@ const Dashboard = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => (
+        {dashboardStats.map((stat, index) => (
           <div key={stat.name} className="card-elevated group hover:shadow-2xl relative overflow-hidden" style={{ animationDelay: `${index * 0.1}s` }}>
             {/* Background gradient */}
             <div className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
@@ -249,7 +305,7 @@ const Dashboard = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>الهدف: {stat.target}</span>
-                    <span>{stat.progress}%</span>
+                    <span>{Math.round(stat.progress)}%</span>
                   </div>
                   <div className="progress-bar">
                     <div 
@@ -384,148 +440,112 @@ const Dashboard = () => {
               <Target className="h-6 w-6 ml-2 text-primary-600" />
               توزيع المبيعات
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            {categoryData.length > 0 ? (
+              <>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={120}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value, name, props) => [
+                        `${value}% (${props.payload.amount} ج.م)`,
+                        props.payload.name
+                      ]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  {categoryData.map((item) => (
+                    <div key={item.name} className="flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group">
+                      <div 
+                        className="w-4 h-4 rounded-full ml-2 shadow-sm group-hover:scale-110 transition-transform duration-200"
+                        style={{ backgroundColor: item.color }}
+                      ></div>
+                      <div>
+                        <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                        <p className="text-xs text-gray-500">{item.amount} ج.م</p>
+                      </div>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value, name, props) => [
-                    `${value}% (${props.payload.amount} ج.م)`,
-                    props.payload.name
-                  ]}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              {categoryData.map((item) => (
-                <div key={item.name} className="flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group">
-                  <div 
-                    className="w-4 h-4 rounded-full ml-2 shadow-sm group-hover:scale-110 transition-transform duration-200"
-                    style={{ backgroundColor: item.color }}
-                  ></div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-700">{item.name}</span>
-                    <p className="text-xs text-gray-500">{item.amount} ج.م</p>
-                  </div>
                 </div>
-              ))}
-            </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">لا توجد بيانات مبيعات</p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Top Selling Items */}
-        <div className="card-elevated relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-24 h-24 bg-gradient-to-br from-yellow-500/10 to-transparent rounded-full"></div>
+        {/* Low Stock Alert */}
+        <div className="card-elevated border-l-4 border-l-warning-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-500/10 to-transparent rounded-full"></div>
           
           <div className="relative z-10">
-            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <Award className="h-6 w-6 ml-2 text-primary-600" />
-              الأصناف الأكثر مبيعاً
-            </h3>
-            <div className="space-y-4">
-              {topItems.map((item, index) => (
-                <div key={item.name} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-300 group">
-                  <div className="flex items-center">
-                    <div className={`flex items-center justify-center w-12 h-12 rounded-2xl text-white font-bold text-sm ml-3 shadow-lg group-hover:scale-110 transition-transform duration-300 ${
-                      index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
-                      index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
-                      index === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
-                      'bg-gradient-to-r from-blue-400 to-blue-500'
-                    }`}>
-                      {index === 0 ? <Star className="h-5 w-5" /> : index + 1}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors duration-300">
-                        {item.name}
-                      </p>
-                      <p className="text-xs text-gray-500">{item.sales} قطعة مباعة</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-gray-900">{item.revenue} ج.م</p>
-                    <div className="flex items-center">
-                      {item.trend === 'up' ? (
-                        <TrendingUp className="h-3 w-3 text-success-500 ml-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 text-danger-500 ml-1" />
-                      )}
-                      <span className={`text-xs font-medium ${
-                        item.trend === 'up' ? 'text-success-600' : 'text-danger-600'
-                      }`}>
-                        {item.growth > 0 ? '+' : ''}{item.growth}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-warning-500 ml-2 animate-pulse" />
+              <h3 className="text-lg font-bold text-gray-900">تنبيهات المخزون</h3>
             </div>
-          </div>
-        </div>
-
-        {/* Recent Orders & Alerts */}
-        <div className="space-y-6">
-          {/* Low Stock Alert */}
-          <div className="card-elevated border-l-4 border-l-warning-500 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-red-500/10 to-transparent rounded-full"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center mb-4">
-                <AlertTriangle className="h-6 w-6 text-warning-500 ml-2 animate-pulse" />
-                <h3 className="text-lg font-bold text-gray-900">تنبيهات المخزون</h3>
-              </div>
+            {lowStockItems.length > 0 ? (
               <div className="space-y-3">
                 {lowStockItems.map((item) => (
-                  <div key={item.name} className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 hover:shadow-md ${
-                    item.urgency === 'critical' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-800'
+                  <div key={item.id} className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 hover:shadow-md ${
+                    item.status === 'out-of-stock' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-orange-50 border-orange-200 text-orange-800'
                   }`}>
                     <div>
                       <p className="text-sm font-semibold">{item.name}</p>
-                      <p className="text-xs opacity-75">متبقي: {item.current} | الحد الأدنى: {item.minimum}</p>
+                      <p className="text-xs opacity-75">متبقي: {item.current_stock} | الحد الأدنى: {item.minimum_stock}</p>
                     </div>
                     <div className="flex items-center">
                       <Zap className="h-4 w-4 ml-1" />
                       <span className="text-xs font-bold">
-                        {item.urgency === 'critical' ? 'حرج' : 'منخفض'}
+                        {item.status === 'out-of-stock' ? 'نفد' : 'منخفض'}
                       </span>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-
-          {/* Recent Orders */}
-          <div className="card-elevated relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full"></div>
-            
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                  <Clock className="h-5 w-5 ml-2 text-primary-600" />
-                  الطلبات الأخيرة
-                </h3>
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center group">
-                  <Eye className="h-4 w-4 ml-1 group-hover:scale-110 transition-transform duration-300" />
-                  عرض الكل
-                </button>
+            ) : (
+              <div className="text-center py-8">
+                <CheckCircle className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                <p className="text-gray-500">جميع المواد متوفرة</p>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Orders */}
+        <div className="card-elevated relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-full"></div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                <Clock className="h-5 w-5 ml-2 text-primary-600" />
+                الطلبات الأخيرة
+              </h3>
+              <button className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center group">
+                <Eye className="h-4 w-4 ml-1 group-hover:scale-110 transition-transform duration-300" />
+                عرض الكل
+              </button>
+            </div>
+            {recentOrders.length > 0 ? (
               <div className="space-y-3">
                 {recentOrders.map((order) => (
                   <div key={order.id} className={`flex items-center justify-between p-3 rounded-xl border-l-4 transition-all duration-300 hover:shadow-md ${
-                    order.priority === 'urgent' ? 'border-l-red-500 bg-red-50' :
-                    order.priority === 'high' ? 'border-l-orange-500 bg-orange-50' :
-                    'border-l-blue-500 bg-blue-50'
+                    order.priority === 'high' ? 'border-l-orange-500 bg-orange-50' : 'border-l-blue-500 bg-blue-50'
                   }`}>
                     <div>
                       <div className="flex items-center mb-1">
@@ -536,19 +556,28 @@ const Dashboard = () => {
                     </div>
                     <div className="text-right">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        order.status === 'مكتمل' ? 'bg-success-100 text-success-800' :
-                        order.status === 'جاهز' ? 'bg-primary-100 text-primary-800' :
-                        order.status === 'جاري التحضير' ? 'bg-warning-100 text-warning-800' :
+                        order.status === 'delivered' ? 'bg-success-100 text-success-800' :
+                        order.status === 'ready' ? 'bg-primary-100 text-primary-800' :
+                        order.status === 'preparing' ? 'bg-warning-100 text-warning-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {order.status}
+                        {order.status === 'pending' ? 'جديد' :
+                         order.status === 'preparing' ? 'جاري التحضير' :
+                         order.status === 'ready' ? 'جاهز' :
+                         order.status === 'served' ? 'تم التقديم' :
+                         order.status}
                       </span>
                       <p className="text-xs text-gray-500 mt-1">{order.time}</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            ) : (
+              <div className="text-center py-8">
+                <CheckCircle className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                <p className="text-gray-500">لا توجد طلبات نشطة</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

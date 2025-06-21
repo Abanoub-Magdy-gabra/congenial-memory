@@ -642,3 +642,53 @@ export interface Database {
 export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
 export type Inserts<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
 export type Updates<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
+
+// Auth helpers
+export const getCurrentUser = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+};
+
+export const signIn = async (email: string, password: string) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  return { data, error };
+};
+
+export const signOut = async () => {
+  const { error } = await supabase.auth.signOut();
+  return { error };
+};
+
+// Real-time subscriptions
+export const subscribeToOrders = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('orders')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'orders' },
+      callback
+    )
+    .subscribe();
+};
+
+export const subscribeToTables = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('tables')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'tables' },
+      callback
+    )
+    .subscribe();
+};
+
+export const subscribeToInventory = (callback: (payload: any) => void) => {
+  return supabase
+    .channel('inventory')
+    .on('postgres_changes', 
+      { event: '*', schema: 'public', table: 'inventory' },
+      callback
+    )
+    .subscribe();
+};

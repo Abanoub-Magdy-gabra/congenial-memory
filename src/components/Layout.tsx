@@ -60,6 +60,9 @@ import {
   X,
   Plus
 } from 'lucide-react';
+import { useDashboardStats, useNotifications } from '../hooks/useSupabase';
+import { signOut } from '../lib/supabase';
+import toast from 'react-hot-toast';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -69,7 +72,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [notifications] = useState(3);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -81,12 +83,30 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const location = useLocation();
 
+  // Supabase hooks
+  const { stats } = useDashboardStats();
+  const { notifications } = useNotifications();
+
   // Update time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Handle online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   // Handle keyboard shortcuts
@@ -129,7 +149,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       name: 'الطلبات', 
       href: '/orders', 
       icon: ClipboardList, 
-      badge: 5, 
+      badge: stats.activeOrders || null, 
       color: 'from-orange-500 to-orange-600',
       description: 'متابعة الطلبات النشطة'
     },
@@ -145,7 +165,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       name: 'المخزون', 
       href: '/inventory', 
       icon: Package, 
-      badge: 2, 
+      badge: stats.lowStockItems || null, 
       color: 'from-red-500 to-red-600',
       description: 'متابعة المواد والمخزون'
     },
@@ -161,7 +181,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       name: 'التوصيل', 
       href: '/delivery', 
       icon: Truck, 
-      badge: 3, 
+      badge: null, 
       color: 'from-indigo-500 to-indigo-600',
       description: 'متابعة طلبات التوصيل'
     },
@@ -209,24 +229,69 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      const { error } = await signOut();
+      if (error) throw error;
+      toast.success('تم تسجيل الخروج بنجاح');
+    } catch (error) {
+      toast.error('خطأ في تسجيل الخروج');
+    }
+  };
+
   const quickStats = [
-    { label: 'مبيعات اليوم', value: '٣,٤٩٠ ج.م', change: '+12%', color: 'text-green-600', icon: TrendingUp },
-    { label: 'طلبات نشطة', value: '٨', change: '+2', color: 'text-blue-600', icon: Activity },
-    { label: 'عملاء جدد', value: '٥', change: '+1', color: 'text-purple-600', icon: Users },
+    { 
+      label: 'مبيعات اليوم', 
+      value: `${stats.todaySales.toLocaleString()} ج.م`, 
+      change: '+12%', 
+      color: 'text-green-600', 
+      icon: TrendingUp 
+    },
+    { 
+      label: 'طلبات نشطة', 
+      value: stats.activeOrders.toString(), 
+      change: '+2', 
+      color: 'text-blue-600', 
+      icon: Activity 
+    },
+    { 
+      label: 'عملاء جدد', 
+      value: stats.newCustomers.toString(), 
+      change: '+1', 
+      color: 'text-purple-600', 
+      icon: Users 
+    },
   ];
 
   const quickActions = [
-    { name: 'طلب جديد', icon: ShoppingCart, href: '/pos', color: 'from-green-500 to-green-600', count: '5 نشط' },
-    { name: 'إدارة الطاولات', icon: Coffee, href: '/tables', color: 'from-blue-500 to-blue-600', count: '12 متاح' },
-    { name: 'التقارير', icon: BarChart3, href: '/reports', color: 'from-purple-500 to-purple-600', count: 'جديد' },
-    { name: 'الإعدادات', icon: Settings, href: '/settings', color: 'from-gray-500 to-gray-600', count: '3 تحديث' }
-  ];
-
-  const notificationsList = [
-    { id: 1, title: 'طلب جديد #1234', message: 'طلب جديد من طاولة 5', time: '2 دقيقة', type: 'order', unread: true },
-    { id: 2, title: 'مخزون منخفض', message: 'دجاج مشوي - متبقي 5 كيلو', time: '5 دقائق', type: 'warning', unread: true },
-    { id: 3, title: 'تم تسليم الطلب', message: 'طلب #1230 تم تسليمه بنجاح', time: '10 دقائق', type: 'success', unread: false },
-    { id: 4, title: 'عميل جديد', message: 'تم تسجيل عميل جديد: سارة أحمد', time: '15 دقيقة', type: 'info', unread: false },
+    { 
+      name: 'طلب جديد', 
+      icon: ShoppingCart, 
+      href: '/pos', 
+      color: 'from-green-500 to-green-600', 
+      count: `${stats.activeOrders} نشط` 
+    },
+    { 
+      name: 'إدارة الطاولات', 
+      icon: Coffee, 
+      href: '/tables', 
+      color: 'from-blue-500 to-blue-600', 
+      count: `${stats.availableTables} متاح` 
+    },
+    { 
+      name: 'التقارير', 
+      icon: BarChart3, 
+      href: '/reports', 
+      color: 'from-purple-500 to-purple-600', 
+      count: 'جديد' 
+    },
+    { 
+      name: 'الإعدادات', 
+      icon: Settings, 
+      href: '/settings', 
+      color: 'from-gray-500 to-gray-600', 
+      count: '3 تحديث' 
+    }
   ];
 
   const recentSearches = ['شاورما دجاج', 'طاولة 5', 'أحمد محمد', 'تقرير المبيعات'];
@@ -347,7 +412,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-100">
-          <button className="w-full flex items-center px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200">
+          <button 
+            onClick={handleSignOut}
+            className="w-full flex items-center px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
+          >
             <LogOut className="h-5 w-5 ml-3" />
             <span className={`${sidebarOpen ? 'block' : 'hidden'} font-medium text-sm`}>
               تسجيل الخروج
@@ -474,9 +542,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               {/* System Status Indicators */}
               <div className="flex items-center space-x-3 space-x-reverse">
-                <div className="flex items-center space-x-1 space-x-reverse bg-green-50 rounded-lg px-3 py-2 border border-green-200">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-600 font-medium">متصل</span>
+                <div className={`flex items-center space-x-1 space-x-reverse rounded-lg px-3 py-2 border ${
+                  isOnline 
+                    ? 'bg-green-50 border-green-200' 
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                  }`}></div>
+                  <span className={`text-xs font-medium ${
+                    isOnline ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {isOnline ? 'متصل' : 'غير متصل'}
+                  </span>
                 </div>
                 
                 <div className="flex items-center space-x-1 space-x-reverse bg-blue-50 rounded-lg px-3 py-2 border border-blue-200">
@@ -553,9 +631,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className="relative p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200"
                 >
                   <Bell className="h-5 w-5" />
-                  {notifications > 0 && (
+                  {notifications.length > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
-                      {notifications}
+                      {notifications.length}
                     </span>
                   )}
                 </button>
@@ -574,7 +652,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
                     
                     <div className="space-y-3">
-                      {notificationsList.map((notification) => (
+                      {notifications.length > 0 ? notifications.map((notification) => (
                         <div
                           key={notification.id}
                           className={`p-3 rounded-lg border transition-all duration-200 hover:shadow-md ${
@@ -601,7 +679,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             )}
                           </div>
                         </div>
-                      ))}
+                      )) : (
+                        <div className="text-center py-8">
+                          <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500">لا توجد إشعارات جديدة</p>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="mt-4 pt-3 border-t border-gray-200">
@@ -630,7 +713,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <div className="h-10 w-10 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
                       <span className="text-sm font-medium text-white">أ</span>
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+                      isOnline ? 'bg-green-500' : 'bg-gray-400'
+                    }`}></div>
                   </div>
                   <ChevronDown className="h-4 w-4 text-gray-400" />
                 </button>
@@ -646,8 +731,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <p className="text-sm font-semibold text-gray-900">أحمد محمد</p>
                         <p className="text-xs text-gray-500">ahmed@restaurant.com</p>
                         <div className="flex items-center mt-1">
-                          <div className="w-2 h-2 bg-green-500 rounded-full ml-1"></div>
-                          <span className="text-xs text-green-600">متصل الآن</span>
+                          <div className={`w-2 h-2 rounded-full ml-1 ${
+                            isOnline ? 'bg-green-500' : 'bg-gray-400'
+                          }`}></div>
+                          <span className={`text-xs ${
+                            isOnline ? 'text-green-600' : 'text-gray-500'
+                          }`}>
+                            {isOnline ? 'متصل الآن' : 'غير متصل'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -683,7 +774,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </div>
                     
                     <div className="border-t border-gray-200 mt-4 pt-4">
-                      <button className="w-full flex items-center p-3 rounded-lg hover:bg-red-50 transition-colors duration-200 group text-red-600">
+                      <button 
+                        onClick={handleSignOut}
+                        className="w-full flex items-center p-3 rounded-lg hover:bg-red-50 transition-colors duration-200 group text-red-600"
+                      >
                         <LogOut className="h-4 w-4 ml-3 group-hover:scale-110 transition-transform duration-200" />
                         <span className="text-sm font-medium">تسجيل الخروج</span>
                       </button>
