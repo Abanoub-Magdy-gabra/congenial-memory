@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home,
   ShoppingCart,
@@ -58,7 +58,8 @@ import {
   AlertTriangle,
   CheckCircle,
   X,
-  Plus
+  Plus,
+  Plug
 } from 'lucide-react';
 import { useDashboardStats, useNotifications } from '../hooks/useSupabase';
 import { signOut } from '../lib/supabase';
@@ -82,12 +83,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [searchValue, setSearchValue] = useState('');
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  // Supabase hooks
   const { stats } = useDashboardStats();
   const { notifications } = useNotifications();
 
-  // Update time every second
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -95,7 +95,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Handle online/offline status
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -109,7 +108,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
   }, []);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -210,6 +208,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       description: 'تحليلات وإحصائيات'
     },
     { 
+      name: 'التكاملات', 
+      href: '/integrations', 
+      icon: Plug, 
+      badge: null, 
+      color: 'from-purple-500 to-purple-600',
+      description: 'ربط مع خدمات خارجية'
+    },
+    { 
       name: 'الإعدادات', 
       href: '/settings', 
       icon: Settings, 
@@ -234,6 +240,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       const { error } = await signOut();
       if (error) throw error;
       toast.success('تم تسجيل الخروج بنجاح');
+      navigate('/login');
     } catch (error) {
       toast.error('خطأ في تسجيل الخروج');
     }
@@ -308,10 +315,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className={`flex h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 ${darkMode ? 'dark' : ''}`}>
-      {/* Clean, Modern Sidebar */}
       <div className={`${sidebarOpen ? 'w-72' : 'w-20'} fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 ease-in-out z-50 shadow-lg flex flex-col`}>
-        
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <div className={`${sidebarOpen ? 'block' : 'hidden'} flex items-center space-x-3 space-x-reverse`}>
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
@@ -330,7 +334,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navigation.map((item) => {
             const isActive = location.pathname === item.href;
@@ -346,7 +349,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                {/* Icon */}
                 <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 ${
                   isActive 
                     ? 'bg-blue-600 text-white shadow-md' 
@@ -355,7 +357,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <item.icon className="h-5 w-5" />
                 </div>
                 
-                {/* Text Content */}
                 <div className={`${sidebarOpen ? 'block' : 'hidden'} ml-4 flex-1 min-w-0`}>
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-sm truncate">{item.name}</span>
@@ -368,12 +369,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{item.description}</p>
                 </div>
 
-                {/* Active Indicator */}
                 {isActive && (
                   <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-l-full"></div>
                 )}
 
-                {/* Tooltip for collapsed state */}
                 {!sidebarOpen && hoveredItem === item.name && (
                   <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg z-50 whitespace-nowrap">
                     {item.name}
@@ -385,7 +384,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           })}
         </nav>
 
-        {/* Quick Stats */}
         {sidebarOpen && (
           <div className="mx-4 mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
             <div className="flex items-center justify-between mb-3">
@@ -410,7 +408,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         )}
 
-        {/* Footer */}
         <div className="p-4 border-t border-gray-100">
           <button 
             onClick={handleSignOut}
@@ -424,15 +421,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </div>
 
-      {/* Main content with proper margin */}
       <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarOpen ? 'ml-72' : 'ml-20'}`}>
-        {/* Enhanced Modern Navbar */}
         <header className="bg-white border-b border-gray-200 shadow-sm relative z-40">
           <div className="flex items-center justify-between px-6 py-4">
-            
-            {/* Left Section - Enhanced Search & Breadcrumbs */}
             <div className="flex items-center space-x-6 space-x-reverse flex-1 max-w-2xl">
-              {/* Enhanced Search Bar */}
               <div className="relative group flex-1">
                 <div className={`relative transition-all duration-300 ${searchFocused ? 'scale-105 shadow-lg' : 'shadow-sm'}`}>
                   <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 transition-colors duration-300 group-hover:text-blue-500" />
@@ -461,11 +453,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   </div>
                 </div>
                 
-                {/* Search Dropdown */}
                 {searchFocused && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                     <div className="space-y-4">
-                      {/* Quick Actions */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
                           <Zap className="h-4 w-4 ml-1 text-yellow-500" />
@@ -477,6 +467,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                               key={action.name}
                               to={action.href}
                               className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors duration-200 group"
+                              onClick={() => setShowQuickActions(false)}
                             >
                               <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color} text-white mr-3 group-hover:scale-110 transition-transform duration-200`}>
                                 <action.icon className="h-4 w-4" />
@@ -490,7 +481,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                         </div>
                       </div>
                       
-                      {/* Recent Searches */}
                       <div>
                         <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
                           <History className="h-4 w-4 ml-1 text-gray-500" />
@@ -512,7 +502,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
               </div>
 
-              {/* Enhanced Breadcrumbs */}
               <div className="flex items-center space-x-2 space-x-reverse text-sm bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
                 <Home className="h-4 w-4 text-gray-400" />
                 <ChevronLeft className="h-3 w-3 rotate-180 text-gray-400" />
@@ -522,9 +511,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {/* Center Section - Enhanced Time & Status */}
             <div className="flex items-center space-x-4 space-x-reverse">
-              {/* Live Time Card */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl px-4 py-3 border border-blue-200 shadow-sm">
                 <div className="text-center">
                   <div className="text-lg font-bold text-gray-900 mb-1">
@@ -540,7 +527,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </div>
               </div>
 
-              {/* System Status Indicators */}
               <div className="flex items-center space-x-3 space-x-reverse">
                 <div className={`flex items-center space-x-1 space-x-reverse rounded-lg px-3 py-2 border ${
                   isOnline 
@@ -564,9 +550,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {/* Right Section - Enhanced Actions & Profile */}
             <div className="flex items-center space-x-3 space-x-reverse">
-              {/* Quick Actions Button */}
               <div className="relative">
                 <button
                   onClick={() => setShowQuickActions(!showQuickActions)}
@@ -575,7 +559,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Layers className="h-5 w-5" />
                 </button>
 
-                {/* Quick Actions Dropdown */}
                 {showQuickActions && (
                   <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                     <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
@@ -604,7 +587,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
               </div>
 
-              {/* Theme Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
                 className={`p-3 rounded-xl transition-all duration-200 ${
@@ -616,7 +598,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </button>
 
-              {/* Fullscreen Toggle */}
               <button
                 onClick={toggleFullscreen}
                 className="p-3 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200"
@@ -624,7 +605,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {fullscreen ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
               </button>
 
-              {/* Enhanced Notifications */}
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
@@ -638,7 +618,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   )}
                 </button>
 
-                {/* Notifications Dropdown */}
                 {showNotifications && (
                   <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50 max-h-96 overflow-y-auto">
                     <div className="flex items-center justify-between mb-4">
@@ -696,7 +675,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 )}
               </div>
               
-              {/* Enhanced User Profile */}
               <div className="relative">
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -720,7 +698,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <ChevronDown className="h-4 w-4 text-gray-400" />
                 </button>
 
-                {/* Profile Dropdown */}
                 {showProfileMenu && (
                   <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                     <div className="flex items-center space-x-3 space-x-reverse mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
@@ -789,7 +766,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
           {children}
         </main>
