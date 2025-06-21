@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Home,
@@ -34,7 +34,27 @@ import {
   Clock,
   Target,
   Award,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  User,
+  CreditCard,
+  Shield,
+  Globe,
+  Palette,
+  Database,
+  RefreshCw,
+  Download,
+  Upload,
+  Filter,
+  MoreHorizontal,
+  Command,
+  Keyboard,
+  Bookmark,
+  History,
+  Layers,
+  Monitor,
+  Smartphone,
+  Tablet
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -48,7 +68,40 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [notifications] = useState(3);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const location = useLocation();
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchFocused(true);
+      }
+      if (e.key === 'Escape') {
+        setShowProfileMenu(false);
+        setShowNotifications(false);
+        setShowQuickActions(false);
+        setSearchFocused(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const navigation = [
     { 
@@ -167,6 +220,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { label: 'طلبات نشطة', value: '٨', change: '+2', color: 'text-blue-600', icon: Activity },
     { label: 'عملاء جدد', value: '٥', change: '+1', color: 'text-purple-600', icon: Users },
   ];
+
+  const quickActions = [
+    { name: 'طلب جديد', icon: ShoppingCart, href: '/pos', color: 'from-green-500 to-green-600' },
+    { name: 'تقرير سريع', icon: BarChart3, href: '/reports', color: 'from-blue-500 to-blue-600' },
+    { name: 'إضافة عميل', icon: Users, href: '/customers', color: 'from-purple-500 to-purple-600' },
+    { name: 'إدارة المخزون', icon: Package, href: '/inventory', color: 'from-orange-500 to-orange-600' },
+  ];
+
+  const notificationsList = [
+    { id: 1, title: 'طلب جديد #1234', message: 'طلب جديد من طاولة 5', time: '2 دقيقة', type: 'order', unread: true },
+    { id: 2, title: 'مخزون منخفض', message: 'دجاج مشوي - متبقي 5 كيلو', time: '5 دقائق', type: 'warning', unread: true },
+    { id: 3, title: 'تم تسليم الطلب', message: 'طلب #1230 تم تسليمه بنجاح', time: '10 دقائق', type: 'success', unread: false },
+    { id: 4, title: 'عميل جديد', message: 'تم تسجيل عميل جديد: سارة أحمد', time: '15 دقيقة', type: 'info', unread: false },
+  ];
+
+  const recentSearches = ['شاورما دجاج', 'طاولة 5', 'أحمد محمد', 'تقرير المبيعات'];
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'order': return <ShoppingCart className="h-4 w-4 text-blue-500" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'info': return <User className="h-4 w-4 text-purple-500" />;
+      default: return <Bell className="h-4 w-4 text-gray-500" />;
+    }
+  };
 
   return (
     <div className={`flex h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 ${darkMode ? 'dark' : ''}`}>
@@ -375,27 +454,162 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Enhanced Header */}
-        <header className="glass-effect border-b border-white/10 shadow-sm relative overflow-hidden">
+        {/* Enhanced Header/Navbar */}
+        <header className="glass-effect border-b border-white/10 shadow-lg relative overflow-hidden">
           {/* Animated background */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-purple-500/5"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
+          <div className="absolute top-0 left-0 w-64 h-full bg-gradient-to-r from-primary-600/10 to-transparent"></div>
+          <div className="absolute top-0 right-0 w-64 h-full bg-gradient-to-l from-purple-600/10 to-transparent"></div>
           
           <div className="relative z-10 flex items-center justify-between px-6 py-4">
+            {/* Left Section - Search & Breadcrumbs */}
+            <div className="flex items-center space-x-6 space-x-reverse flex-1">
+              {/* Enhanced Search */}
+              <div className="relative group">
+                <div className={`relative transition-all duration-300 ${searchFocused ? 'scale-105' : ''}`}>
+                  <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5 transition-colors duration-300 group-hover:text-primary-500" />
+                  <input
+                    type="text"
+                    placeholder="البحث السريع في النظام..."
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+                    className="pl-4 pr-12 py-3 w-96 bg-white/70 backdrop-blur-sm border border-white/30 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white transition-all duration-300 shadow-sm hover:shadow-lg focus:shadow-xl placeholder-gray-400"
+                  />
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-1 space-x-reverse">
+                    <kbd className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded flex items-center">
+                      <Command className="h-3 w-3 mr-1" />
+                      K
+                    </kbd>
+                  </div>
+                </div>
+                
+                {/* Search Dropdown */}
+                {searchFocused && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-4 z-50">
+                    <div className="space-y-4">
+                      {/* Quick Actions */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <Zap className="h-4 w-4 ml-1 text-yellow-500" />
+                          إجراءات سريعة
+                        </h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {quickActions.map((action) => (
+                            <Link
+                              key={action.name}
+                              to={action.href}
+                              className="flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group"
+                            >
+                              <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color} text-white mr-3 group-hover:scale-110 transition-transform duration-200`}>
+                                <action.icon className="h-4 w-4" />
+                              </div>
+                              <span className="text-sm font-medium text-gray-700">{action.name}</span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Recent Searches */}
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                          <History className="h-4 w-4 ml-1 text-gray-500" />
+                          عمليات بحث حديثة
+                        </h4>
+                        <div className="space-y-1">
+                          {recentSearches.map((search, index) => (
+                            <button
+                              key={index}
+                              className="w-full text-right p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-sm text-gray-600"
+                            >
+                              {search}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Breadcrumbs */}
+              <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-500">
+                <Home className="h-4 w-4" />
+                <ChevronLeft className="h-3 w-3 rotate-180" />
+                <span className="text-gray-700 font-medium">
+                  {navigation.find(nav => nav.href === location.pathname)?.name || 'الصفحة الحالية'}
+                </span>
+              </div>
+            </div>
+
+            {/* Center Section - Time & Status */}
             <div className="flex items-center space-x-4 space-x-reverse">
-              <div className="relative">
-                <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <input
-                  type="text"
-                  placeholder="البحث السريع..."
-                  className="pl-4 pr-12 py-3 w-96 bg-white/70 backdrop-blur-sm border border-white/30 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent focus:bg-white transition-all duration-300 shadow-sm hover:shadow-md"
-                />
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                  <kbd className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded">⌘K</kbd>
+              {/* Live Time */}
+              <div className="text-center bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2 border border-white/30">
+                <div className="text-lg font-bold text-gray-900">
+                  {currentTime.toLocaleTimeString('ar-EG', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {currentTime.toLocaleDateString('ar-EG', { weekday: 'short' })}
+                </div>
+              </div>
+
+              {/* System Status Indicators */}
+              <div className="flex items-center space-x-3 space-x-reverse">
+                <div className="flex items-center space-x-1 space-x-reverse bg-white/20 backdrop-blur-sm rounded-xl px-3 py-2">
+                  <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                  <span className="text-xs text-gray-600">{isOnline ? 'متصل' : 'غير متصل'}</span>
+                </div>
+                
+                <div className="flex items-center space-x-1 space-x-reverse bg-white/20 backdrop-blur-sm rounded-xl px-3 py-2">
+                  <Activity className="h-3 w-3 text-green-500" />
+                  <span className="text-xs text-gray-600">نشط</span>
                 </div>
               </div>
             </div>
 
+            {/* Right Section - Actions & Profile */}
             <div className="flex items-center space-x-4 space-x-reverse">
+              {/* Quick Actions Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowQuickActions(!showQuickActions)}
+                  className="p-3 text-gray-400 hover:text-gray-600 hover:bg-white/20 rounded-2xl transition-all duration-300 group relative overflow-hidden"
+                >
+                  <Layers className="h-5 w-5 group-hover:scale-110 transition-transform duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+
+                {/* Quick Actions Dropdown */}
+                {showQuickActions && (
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-4 z-50">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                      <Zap className="h-4 w-4 ml-1 text-yellow-500" />
+                      إجراءات سريعة
+                    </h4>
+                    <div className="space-y-2">
+                      {quickActions.map((action) => (
+                        <Link
+                          key={action.name}
+                          to={action.href}
+                          className="flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group"
+                          onClick={() => setShowQuickActions(false)}
+                        >
+                          <div className={`p-2 rounded-lg bg-gradient-to-r ${action.color} text-white mr-3 group-hover:scale-110 transition-transform duration-200`}>
+                            <action.icon className="h-4 w-4" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{action.name}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Theme Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
@@ -423,32 +637,151 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </button>
 
               {/* Notifications */}
-              <button className="relative p-3 text-gray-400 hover:text-gray-600 hover:bg-white/20 rounded-2xl transition-all duration-300 group">
-                <Bell className="h-5 w-5 group-hover:animate-bounce" />
-                {notifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
-                    {notifications}
-                  </span>
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative p-3 text-gray-400 hover:text-gray-600 hover:bg-white/20 rounded-2xl transition-all duration-300 group"
+                >
+                  <Bell className="h-5 w-5 group-hover:animate-bounce" />
+                  {notifications > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
+                      {notifications}
+                    </span>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-4 z-50 max-h-96 overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-semibold text-gray-700 flex items-center">
+                        <Bell className="h-4 w-4 ml-1 text-primary-500" />
+                        الإشعارات
+                      </h4>
+                      <button className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                        تحديد الكل كمقروء
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {notificationsList.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`p-3 rounded-xl border transition-all duration-200 hover:shadow-md ${
+                            notification.unread 
+                              ? 'bg-primary-50 border-primary-200' 
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          <div className="flex items-start space-x-3 space-x-reverse">
+                            <div className="flex-shrink-0 mt-1">
+                              {getNotificationIcon(notification.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {notification.title}
+                                </p>
+                                <span className="text-xs text-gray-500">{notification.time}</span>
+                              </div>
+                              <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
+                            </div>
+                            {notification.unread && (
+                              <div className="w-2 h-2 bg-primary-500 rounded-full flex-shrink-0 mt-2"></div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <button className="w-full text-center text-sm text-primary-600 hover:text-primary-700 font-medium">
+                        عرض جميع الإشعارات
+                      </button>
+                    </div>
+                  </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-              </button>
+              </div>
               
               {/* User Profile */}
-              <div className="flex items-center space-x-3 space-x-reverse bg-white/20 backdrop-blur-sm rounded-2xl p-3 hover:bg-white/30 transition-all duration-300 cursor-pointer group relative overflow-hidden">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900 group-hover:text-primary-600 transition-colors duration-300">أحمد محمد</p>
-                  <p className="text-xs text-gray-500 flex items-center">
-                    <Star className="h-3 w-3 ml-1 text-yellow-500" />
-                    مدير المطعم
-                  </p>
-                </div>
-                <div className="relative">
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-700 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-                    <span className="text-sm font-medium text-white">أ</span>
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center space-x-3 space-x-reverse bg-white/20 backdrop-blur-sm rounded-2xl p-3 hover:bg-white/30 transition-all duration-300 cursor-pointer group relative overflow-hidden border border-white/30"
+                >
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900 group-hover:text-primary-600 transition-colors duration-300">أحمد محمد</p>
+                    <div className="flex items-center text-xs text-gray-500">
+                      <Star className="h-3 w-3 ml-1 text-yellow-500" />
+                      مدير المطعم
+                    </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                  <div className="relative">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-700 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+                      <span className="text-sm font-medium text-white">أ</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                </button>
+
+                {/* Profile Dropdown */}
+                {showProfileMenu && (
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 p-4 z-50">
+                    <div className="flex items-center space-x-3 space-x-reverse mb-4 p-3 bg-gradient-to-r from-primary-50 to-purple-50 rounded-xl">
+                      <div className="h-12 w-12 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 flex items-center justify-center shadow-lg">
+                        <span className="text-sm font-medium text-white">أ</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">أحمد محمد</p>
+                        <p className="text-xs text-gray-500">ahmed@restaurant.com</p>
+                        <div className="flex items-center mt-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full ml-1"></div>
+                          <span className="text-xs text-green-600">متصل الآن</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <Link
+                        to="/profile"
+                        className="flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group"
+                        onClick={() => setShowProfileMenu(false)}
+                      >
+                        <User className="h-4 w-4 text-gray-400 ml-3 group-hover:text-primary-500 transition-colors duration-200" />
+                        <span className="text-sm text-gray-700">الملف الشخصي</span>
+                      </Link>
+                      
+                      <Link
+                        to="/settings"
+                        className="flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group"
+                        onClick={() => setShowProfileMenu(false)}
+                      >
+                        <Settings className="h-4 w-4 text-gray-400 ml-3 group-hover:text-primary-500 transition-colors duration-200" />
+                        <span className="text-sm text-gray-700">الإعدادات</span>
+                      </Link>
+                      
+                      <button className="w-full flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group">
+                        <Shield className="h-4 w-4 text-gray-400 ml-3 group-hover:text-primary-500 transition-colors duration-200" />
+                        <span className="text-sm text-gray-700">الأمان والخصوصية</span>
+                      </button>
+                      
+                      <button className="w-full flex items-center p-3 rounded-xl hover:bg-gray-50 transition-colors duration-200 group">
+                        <HelpCircle className="h-4 w-4 text-gray-400 ml-3 group-hover:text-primary-500 transition-colors duration-200" />
+                        <span className="text-sm text-gray-700">المساعدة والدعم</span>
+                      </button>
+                    </div>
+                    
+                    <div className="border-t border-gray-200 mt-4 pt-4">
+                      <button className="w-full flex items-center p-3 rounded-xl hover:bg-red-50 transition-colors duration-200 group text-red-600">
+                        <LogOut className="h-4 w-4 ml-3 group-hover:scale-110 transition-transform duration-200" />
+                        <span className="text-sm font-medium">تسجيل الخروج</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
