@@ -1,0 +1,505 @@
+import React, { useState, useEffect } from 'react';
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  ShoppingCart,
+  Users,
+  Package,
+  Clock,
+  AlertTriangle,
+  Eye,
+  Calendar,
+  Target,
+  Award,
+  Zap,
+  BarChart3,
+  Settings
+} from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+
+const Dashboard = () => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedPeriod, setSelectedPeriod] = useState('today');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Sample data
+  const salesData = [
+    { name: 'السبت', sales: 4000, orders: 24, profit: 1200 },
+    { name: 'الأحد', sales: 3000, orders: 18, profit: 900 },
+    { name: 'الاثنين', sales: 2000, orders: 12, profit: 600 },
+    { name: 'الثلاثاء', sales: 2780, orders: 16, profit: 834 },
+    { name: 'الأربعاء', sales: 1890, orders: 11, profit: 567 },
+    { name: 'الخميس', sales: 2390, orders: 14, profit: 717 },
+    { name: 'الجمعة', sales: 3490, orders: 20, profit: 1047 },
+  ];
+
+  const hourlyData = [
+    { hour: '9:00', sales: 120, customers: 8 },
+    { hour: '10:00', sales: 180, customers: 12 },
+    { hour: '11:00', sales: 250, customers: 15 },
+    { hour: '12:00', sales: 420, customers: 28 },
+    { hour: '13:00', sales: 380, customers: 25 },
+    { hour: '14:00', sales: 290, customers: 19 },
+    { hour: '15:00', sales: 220, customers: 14 },
+    { hour: '16:00', sales: 180, customers: 12 },
+    { hour: '17:00', sales: 240, customers: 16 },
+    { hour: '18:00', sales: 350, customers: 23 },
+    { hour: '19:00', sales: 480, customers: 32 },
+    { hour: '20:00', sales: 520, customers: 35 },
+    { hour: '21:00', sales: 380, customers: 25 },
+    { hour: '22:00', sales: 280, customers: 18 }
+  ];
+
+  const categoryData = [
+    { name: 'الوجبات الرئيسية', value: 45, color: '#0ea5e9', amount: 1580 },
+    { name: 'المشروبات', value: 25, color: '#22c55e', amount: 875 },
+    { name: 'الحلويات', value: 20, color: '#f59e0b', amount: 700 },
+    { name: 'المقبلات', value: 10, color: '#ef4444', amount: 350 }
+  ];
+
+  const topItems = [
+    { name: 'شاورما دجاج', sales: 45, revenue: 675, growth: 12.5, trend: 'up' },
+    { name: 'برجر لحم', sales: 38, revenue: 950, growth: 8.2, trend: 'up' },
+    { name: 'بيتزا مارجريتا', sales: 32, revenue: 1120, growth: -2.1, trend: 'down' },
+    { name: 'عصير برتقال', sales: 52, revenue: 416, growth: 15.3, trend: 'up' },
+    { name: 'قهوة تركي', sales: 28, revenue: 196, growth: 5.7, trend: 'up' }
+  ];
+
+  const lowStockItems = [
+    { name: 'دجاج مشوي', current: 5, minimum: 10, urgency: 'high' },
+    { name: 'جبن موتزاريلا', current: 2, minimum: 8, urgency: 'critical' },
+    { name: 'طماطم', current: 3, minimum: 15, urgency: 'high' },
+    { name: 'خس', current: 1, minimum: 5, urgency: 'critical' },
+  ];
+
+  const recentOrders = [
+    { id: '#1234', table: 'طاولة 5', items: 3, total: 245, status: 'جاري التحضير', time: '10:30 ص', priority: 'normal' },
+    { id: '#1235', table: 'طاولة 2', items: 2, total: 180, status: 'جاهز', time: '10:25 ص', priority: 'high' },
+    { id: '#1236', table: 'تيك أواي', items: 4, total: 320, status: 'مكتمل', time: '10:20 ص', priority: 'normal' },
+    { id: '#1237', table: 'طاولة 8', items: 1, total: 95, status: 'جديد', time: '10:35 ص', priority: 'urgent' },
+  ];
+
+  const stats = [
+    {
+      name: 'إجمالي المبيعات اليوم',
+      value: '٣,٤٩٠ ج.م',
+      change: '+12.5%',
+      changeType: 'increase',
+      icon: DollarSign,
+      color: 'primary',
+      target: '4000 ج.م',
+      progress: 87
+    },
+    {
+      name: 'عدد الطلبات',
+      value: '٢٠',
+      change: '+8.2%',
+      changeType: 'increase',
+      icon: ShoppingCart,
+      color: 'success',
+      target: '25',
+      progress: 80
+    },
+    {
+      name: 'العملاء الجدد',
+      value: '٧',
+      change: '-2.1%',
+      changeType: 'decrease',
+      icon: Users,
+      color: 'warning',
+      target: '10',
+      progress: 70
+    },
+    {
+      name: 'متوسط قيمة الطلب',
+      value: '١٧٤.٥ ج.م',
+      change: '+5.4%',
+      changeType: 'increase',
+      icon: TrendingUp,
+      color: 'info',
+      target: '200 ج.م',
+      progress: 87
+    },
+  ];
+
+  const getStatColorClasses = (color: string) => {
+    switch (color) {
+      case 'primary': return 'from-blue-500 to-blue-600';
+      case 'success': return 'from-green-500 to-green-600';
+      case 'warning': return 'from-yellow-500 to-yellow-600';
+      case 'info': return 'from-purple-500 to-purple-600';
+      default: return 'from-gray-500 to-gray-600';
+    }
+  };
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case 'critical': return 'bg-red-100 border-red-300 text-red-800';
+      case 'high': return 'bg-orange-100 border-orange-300 text-orange-800';
+      default: return 'bg-yellow-100 border-yellow-300 text-yellow-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'border-l-red-500 bg-red-50';
+      case 'high': return 'border-l-orange-500 bg-orange-50';
+      default: return 'border-l-blue-500 bg-blue-50';
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div className="fade-in">
+          <h1 className="text-3xl font-bold gradient-text">لوحة التحكم</h1>
+          <p className="text-gray-600 mt-2">مرحباً بك في نظام إدارة المطعم المتطور</p>
+        </div>
+        <div className="text-right slide-in-right">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 border border-white/20 shadow-lg">
+            <p className="text-sm text-gray-500">الوقت الحالي</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {currentTime.toLocaleTimeString('ar-EG')}
+            </p>
+            <p className="text-sm text-gray-600">
+              {currentTime.toLocaleDateString('ar-EG', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bounce-in">
+        {[
+          { name: 'طلب جديد', icon: ShoppingCart, color: 'from-blue-500 to-blue-600', href: '/pos' },
+          { name: 'إدارة الطاولات', icon: Package, color: 'from-green-500 to-green-600', href: '/tables' },
+          { name: 'التقارير', icon: BarChart3, color: 'from-purple-500 to-purple-600', href: '/reports' },
+          { name: 'الإعدادات', icon: Settings, color: 'from-gray-500 to-gray-600', href: '/settings' }
+        ].map((action, index) => (
+          <div
+            key={action.name}
+            className={`card-interactive bg-gradient-to-r ${action.color} text-white p-6 group`}
+            style={{ animationDelay: `${index * 0.1}s` }}
+          >
+            <action.icon className="h-8 w-8 mb-3 group-hover:scale-110 transition-transform duration-300" />
+            <h3 className="font-semibold text-lg">{action.name}</h3>
+          </div>
+        ))}
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, index) => (
+          <div key={stat.name} className="card-elevated group hover:shadow-2xl" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-3 rounded-2xl bg-gradient-to-r ${getStatColorClasses(stat.color)} shadow-lg group-hover:shadow-xl transition-all duration-300`}>
+                <stat.icon className="h-6 w-6 text-white" />
+              </div>
+              <div className="text-right">
+                <div className="flex items-center">
+                  {stat.changeType === 'increase' ? (
+                    <TrendingUp className="h-4 w-4 text-success-500 ml-1" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-danger-500 ml-1" />
+                  )}
+                  <span className={`text-sm font-medium ${
+                    stat.changeType === 'increase' ? 'text-success-600' : 'text-danger-600'
+                  }`}>
+                    {stat.change}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                <p className="text-2xl font-bold text-gray-900 group-hover:scale-105 transition-transform duration-300">
+                  {stat.value}
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>الهدف: {stat.target}</span>
+                  <span>{stat.progress}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill"
+                    style={{ width: `${stat.progress}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Sales Trend */}
+        <div className="card-elevated">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center">
+              <TrendingUp className="h-6 w-6 ml-2 text-primary-600" />
+              اتجاه المبيعات
+            </h3>
+            <select 
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value)}
+              className="input-field w-auto text-sm"
+            >
+              <option value="today">اليوم</option>
+              <option value="week">هذا الأسبوع</option>
+              <option value="month">هذا الشهر</option>
+            </select>
+          </div>
+          <ResponsiveContainer width="100%" height={350}>
+            <AreaChart data={salesData}>
+              <defs>
+                <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="name" stroke="#64748b" />
+              <YAxis stroke="#64748b" />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                }}
+                formatter={(value, name) => [
+                  `${value} ${name === 'sales' ? 'ج.م' : name === 'orders' ? 'طلب' : 'ج.م'}`,
+                  name === 'sales' ? 'المبيعات' : name === 'orders' ? 'الطلبات' : 'الربح'
+                ]}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="sales" 
+                stroke="#0ea5e9" 
+                strokeWidth={3}
+                fill="url(#salesGradient)"
+              />
+              <Line type="monotone" dataKey="profit" stroke="#22c55e" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Hourly Performance */}
+        <div className="card-elevated">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 flex items-center">
+              <Clock className="h-6 w-6 ml-2 text-primary-600" />
+              الأداء بالساعة
+            </h3>
+            <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-500">
+              <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
+              <span>المبيعات</span>
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-4"></div>
+              <span>العملاء</span>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={hourlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="hour" stroke="#64748b" />
+              <YAxis stroke="#64748b" />
+              <Tooltip 
+                contentStyle={{
+                  backgroundColor: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
+                }}
+                formatter={(value, name) => [
+                  `${value} ${name === 'sales' ? 'ج.م' : 'عميل'}`,
+                  name === 'sales' ? 'المبيعات' : 'العملاء'
+                ]}
+              />
+              <Bar dataKey="sales" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="customers" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Category Distribution */}
+        <div className="card-elevated">
+          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <Target className="h-6 w-6 ml-2 text-primary-600" />
+            توزيع المبيعات
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={categoryData}
+                cx="50%"
+                cy="50%"
+                innerRadius={60}
+                outerRadius={120}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {categoryData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value, name, props) => [
+                  `${value}% (${props.payload.amount} ج.م)`,
+                  props.payload.name
+                ]}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            {categoryData.map((item) => (
+              <div key={item.name} className="flex items-center p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                <div 
+                  className="w-4 h-4 rounded-full ml-2 shadow-sm"
+                  style={{ backgroundColor: item.color }}
+                ></div>
+                <div>
+                  <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                  <p className="text-xs text-gray-500">{item.amount} ج.م</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Selling Items */}
+        <div className="card-elevated">
+          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <Award className="h-6 w-6 ml-2 text-primary-600" />
+            الأصناف الأكثر مبيعاً
+          </h3>
+          <div className="space-y-4">
+            {topItems.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:shadow-md transition-all duration-300 group">
+                <div className="flex items-center">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-xl text-white font-bold text-sm mr-3 shadow-lg ${
+                    index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                    index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                    index === 2 ? 'bg-gradient-to-r from-orange-400 to-orange-500' :
+                    'bg-gradient-to-r from-blue-400 to-blue-500'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors duration-300">
+                      {item.name}
+                    </p>
+                    <p className="text-xs text-gray-500">{item.sales} قطعة مباعة</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-bold text-gray-900">{item.revenue} ج.م</p>
+                  <div className="flex items-center">
+                    {item.trend === 'up' ? (
+                      <TrendingUp className="h-3 w-3 text-success-500 ml-1" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3 text-danger-500 ml-1" />
+                    )}
+                    <span className={`text-xs font-medium ${
+                      item.trend === 'up' ? 'text-success-600' : 'text-danger-600'
+                    }`}>
+                      {item.growth > 0 ? '+' : ''}{item.growth}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Orders & Alerts */}
+        <div className="space-y-6">
+          {/* Low Stock Alert */}
+          <div className="card-elevated border-l-4 border-l-warning-500">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-warning-500 ml-2" />
+              <h3 className="text-lg font-bold text-gray-900">تنبيهات المخزون</h3>
+            </div>
+            <div className="space-y-3">
+              {lowStockItems.map((item) => (
+                <div key={item.name} className={`flex items-center justify-between p-3 rounded-xl border ${getUrgencyColor(item.urgency)} transition-all duration-300 hover:shadow-md`}>
+                  <div>
+                    <p className="text-sm font-semibold">{item.name}</p>
+                    <p className="text-xs opacity-75">متبقي: {item.current} | الحد الأدنى: {item.minimum}</p>
+                  </div>
+                  <div className="flex items-center">
+                    <Zap className="h-4 w-4 ml-1" />
+                    <span className="text-xs font-bold">
+                      {item.urgency === 'critical' ? 'حرج' : 'منخفض'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Orders */}
+          <div className="card-elevated">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center">
+                <Clock className="h-5 w-5 ml-2 text-primary-600" />
+                الطلبات الأخيرة
+              </h3>
+              <button className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center group">
+                <Eye className="h-4 w-4 ml-1 group-hover:scale-110 transition-transform duration-300" />
+                عرض الكل
+              </button>
+            </div>
+            <div className="space-y-3">
+              {recentOrders.map((order) => (
+                <div key={order.id} className={`flex items-center justify-between p-3 rounded-xl border-l-4 ${getPriorityColor(order.priority)} transition-all duration-300 hover:shadow-md`}>
+                  <div>
+                    <div className="flex items-center mb-1">
+                      <span className="text-sm font-bold text-gray-900 ml-2">{order.id}</span>
+                      <span className="text-xs text-gray-500">{order.table}</span>
+                    </div>
+                    <p className="text-xs text-gray-600">{order.items} أصناف • {order.total} ج.م</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                      order.status === 'مكتمل' ? 'bg-success-100 text-success-800' :
+                      order.status === 'جاهز' ? 'bg-primary-100 text-primary-800' :
+                      order.status === 'جاري التحضير' ? 'bg-warning-100 text-warning-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {order.status}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1">{order.time}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
