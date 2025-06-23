@@ -628,9 +628,9 @@ export function useCustomers() {
           customer_addresses (*)
         `)
         .eq('phone', phone)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       return data;
     } catch (err) {
       if (!err.message?.includes('Failed to fetch')) {
