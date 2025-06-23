@@ -55,7 +55,7 @@ const POS = () => {
   const { menuItems, categories, loading: menuLoading, error: menuError } = useMenuItems();
   const { searchCustomer } = useCustomers();
   const { createOrder } = useOrders();
-  const { tables } = useTables();
+  const { tables, loading: tablesLoading } = useTables();
   const { data: deliveryZones } = useDeliveryZones();
 
   // Update time every minute
@@ -313,7 +313,7 @@ const POS = () => {
     ? totalPreparationTime + selectedDeliveryZone.estimated_time 
     : totalPreparationTime;
 
-  if (menuLoading) {
+  if (menuLoading || tablesLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
@@ -321,7 +321,7 @@ const POS = () => {
             <div className="loading-spinner mx-auto mb-4"></div>
             <div className="absolute inset-0 loading-spinner mx-auto mb-4 animate-ping opacity-20"></div>
           </div>
-          <p className="text-gray-600 text-lg">جاري تحميل قائمة الطعام...</p>
+          <p className="text-gray-600 text-lg">جاري تحميل البيانات...</p>
           <div className="mt-4 flex justify-center space-x-1">
             <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"></div>
             <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -710,7 +710,7 @@ const POS = () => {
           </div>
 
           {/* Order Type Specific Fields */}
-          <div className="space-y-4">
+          <div className="space-y-4 mt-4">
             {orderType === 'dine-in' && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">الطاولة</label>
@@ -720,7 +720,7 @@ const POS = () => {
                   className="w-full input-field"
                 >
                   <option value="">اختر الطاولة</option>
-                  {tables.map((table) => (
+                  {tables && tables.filter(table => table.status === 'available').map((table) => (
                     <option key={table.id} value={table.id}>طاولة {table.number}</option>
                   ))}
                 </select>
@@ -772,7 +772,7 @@ const POS = () => {
           </div>
 
           {/* Enhanced Cart Items */}
-          <div className="flex-1 space-y-3 overflow-y-auto max-h-64 custom-scrollbar">
+          <div className="flex-1 space-y-3 overflow-y-auto max-h-64 custom-scrollbar mt-4">
             {cart.length === 0 ? (
               <div className="text-center py-12">
                 <ShoppingCart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -833,7 +833,7 @@ const POS = () => {
           </div>
 
           {/* Enhanced Order Summary */}
-          <div className="space-y-4 pt-4 border-t border-gray-200">
+          <div className="space-y-4 pt-4 border-t border-gray-200 mt-4">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">المجموع الفرعي:</span>
               <span className="font-semibold">{subtotal.toFixed(2)} ج.م</span>
@@ -872,7 +872,7 @@ const POS = () => {
           </div>
 
           {/* Enhanced Payment Method */}
-          <div className="space-y-3">
+          <div className="space-y-3 mt-4">
             <label className="block text-sm font-semibold text-gray-700">طريقة الدفع</label>
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -912,7 +912,7 @@ const POS = () => {
           </div>
 
           {/* Enhanced Action Buttons */}
-          <div className="space-y-3">
+          <div className="space-y-3 mt-4">
             <button
               onClick={processOrder}
               disabled={cart.length === 0 || processing}
@@ -951,6 +951,75 @@ const POS = () => {
           </div>
         </div>
       </div>
+
+      {/* Notes Modal */}
+      {showNotesModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">إضافة ملاحظات</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ملاحظات للصنف
+                </label>
+                <textarea
+                  value={itemNotes}
+                  onChange={(e) => setItemNotes(e.target.value)}
+                  className="input-field"
+                  rows={4}
+                  placeholder="مثال: بدون بصل، حار إضافي، إلخ..."
+                />
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 space-x-reverse mt-6">
+              <button
+                onClick={() => setShowNotesModal(false)}
+                className="flex-1 btn-secondary"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={() => {
+                  setCart(cart.map(item => 
+                    item.id === selectedItemForNotes
+                      ? { ...item, notes: itemNotes }
+                      : item
+                  ));
+                  setShowNotesModal(false);
+                  toast.success('تم حفظ الملاحظات');
+                }}
+                className="flex-1 btn-primary"
+              >
+                حفظ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMS Modal */}
+      {showSMSModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">إرسال رسالة نصية</h2>
+              <button
+                onClick={() => setShowSMSModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <SMSNotificationManager onSendSMS={() => {
+              setShowSMSModal(false);
+              toast.success('تم إرسال الرسالة بنجاح');
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
