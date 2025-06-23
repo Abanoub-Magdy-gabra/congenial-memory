@@ -1,5 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Receipt, User, Percent, Calculator, ShoppingCart, Clock, Star, Filter, Grid, List, Smartphone, Wifi, Save, Edit, X, Check, AlertCircle, Coffee, Utensils, Package, MapPin, Truck, Home, MessageSquare, Zap, Heart, Siren as Fire, Volume2, VolumeX, Sparkles, TrendingUp, Award, Target } from 'lucide-react';
+import {
+  Search,
+  Plus,
+  Minus,
+  Trash2,
+  CreditCard,
+  Banknote,
+  Receipt,
+  User,
+  Percent,
+  Calculator,
+  ShoppingCart,
+  Clock,
+  Star,
+  Filter,
+  Grid,
+  List,
+  Smartphone,
+  Wifi,
+  Save,
+  Edit,
+  X,
+  Check,
+  AlertCircle,
+  Coffee,
+  Utensils,
+  Package,
+  MapPin,
+  Truck,
+  Home,
+  MessageSquare,
+  Zap,
+  Heart,
+  Siren as Fire,
+  Volume2,
+  VolumeX,
+  Sparkles,
+  TrendingUp,
+  Award,
+  Target
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useMenuItems, useCustomers, useOrders, useTables, useDeliveryZones } from '../hooks/useSupabase';
 import DeliveryZoneManager from '../components/DeliveryZoneManager';
