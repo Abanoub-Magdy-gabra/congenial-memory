@@ -235,7 +235,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                 <input
                   type="text"
                   value={newAddress.label || ''}
-                  onChange={(e) => setNewAddress(prev => ({ ...prev, label: e.target.value }))}
+                  onChange={(e) => setNewAddress((prev: any) => ({ ...prev, label: e.target.value }))}
                   className="input-field"
                   placeholder="مثل: المنزل، العمل"
                 />
@@ -245,7 +245,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">نوع العنوان</label>
                 <select
                   value={newAddress.type}
-                  onChange={(e) => setNewAddress(prev => ({ ...prev, type: e.target.value }))}
+                  onChange={(e) => setNewAddress((prev: any) => ({ ...prev, type: e.target.value }))}
                   className="input-field"
                 >
                   <option value="home">منزل</option>
@@ -259,7 +259,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                 <input
                   type="text"
                   value={newAddress.street || ''}
-                  onChange={(e) => setNewAddress(prev => ({ ...prev, street: e.target.value }))}
+                  onChange={(e) => setNewAddress((prev: any) => ({ ...prev, street: e.target.value }))}
                   className="input-field"
                   placeholder="اسم الشارع والرقم"
                 />
@@ -270,7 +270,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                 <input
                   type="text"
                   value={newAddress.area || ''}
-                  onChange={(e) => setNewAddress(prev => ({ ...prev, area: e.target.value }))}
+                  onChange={(e) => setNewAddress((prev: any) => ({ ...prev, area: e.target.value }))}
                   className="input-field"
                   placeholder="اسم المنطقة"
                 />
@@ -282,7 +282,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                   <input
                     type="text"
                     value={newAddress.building || ''}
-                    onChange={(e) => setNewAddress(prev => ({ ...prev, building: e.target.value }))}
+                    onChange={(e) => setNewAddress((prev: any) => ({ ...prev, building: e.target.value }))}
                     className="input-field"
                     placeholder="رقم المبنى"
                   />
@@ -292,7 +292,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                   <input
                     type="text"
                     value={newAddress.floor || ''}
-                    onChange={(e) => setNewAddress(prev => ({ ...prev, floor: e.target.value }))}
+                    onChange={(e) => setNewAddress((prev: any) => ({ ...prev, floor: e.target.value }))}
                     className="input-field"
                     placeholder="رقم الطابق"
                   />
@@ -302,7 +302,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                   <input
                     type="text"
                     value={newAddress.apartment || ''}
-                    onChange={(e) => setNewAddress(prev => ({ ...prev, apartment: e.target.value }))}
+                    onChange={(e) => setNewAddress((prev: any) => ({ ...prev, apartment: e.target.value }))}
                     className="input-field"
                     placeholder="رقم الشقة"
                   />
@@ -314,7 +314,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                 <input
                   type="text"
                   value={newAddress.landmark || ''}
-                  onChange={(e) => setNewAddress(prev => ({ ...prev, landmark: e.target.value }))}
+                  onChange={(e) => setNewAddress((prev: any) => ({ ...prev, landmark: e.target.value }))}
                   className="input-field"
                   placeholder="مثل: بجوار المسجد، أمام المدرسة"
                 />
@@ -324,7 +324,7 @@ const CustomerAddressManager: React.FC<CustomerAddressManagerProps> = ({
                 <input
                   type="checkbox"
                   checked={newAddress.is_default || false}
-                  onChange={(e) => setNewAddress(prev => ({ ...prev, is_default: e.target.checked }))}
+                  onChange={(e) => setNewAddress((prev: any) => ({ ...prev, is_default: e.target.checked }))}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded ml-2"
                 />
                 <label className="text-sm text-gray-700">تعيين كعنوان افتراضي</label>
